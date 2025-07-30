@@ -1,7 +1,7 @@
 from PySide6 import QtCore, QtUiTools
 import sys
 
-class UiLoader:
+class UiUtil:
     @staticmethod
     def load_ui_widget(ui_filename, parent=None):
         if not sys.path[0].endswith('ui'):
