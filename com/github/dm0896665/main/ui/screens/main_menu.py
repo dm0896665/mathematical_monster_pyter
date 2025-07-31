@@ -1,12 +1,12 @@
-from PySide6.QtWidgets import QWidget, QPushButton
+from PySide6.QtWidgets import QPushButton
 import sys
 
-from com.github.dm0896665.main.util.ui_util import UiUtil
+from com.github.dm0896665.main.ui.screen import Screen
 
-class MainMenu(QWidget):
+
+class MainMenu(Screen):
     def __init__(self):
-        super().__init__()
-        UiUtil.load_ui_widget('screen/main_menu.ui', self)
+        super().__init__('main_menu')
         self.new_game_button = self.findChild(QPushButton, "ui_new_game_button")
         self.load_game_button = self.findChild(QPushButton, "ui_load_game_button")
         self.exit_game_button = self.findChild(QPushButton, "ui_exit_game_button")

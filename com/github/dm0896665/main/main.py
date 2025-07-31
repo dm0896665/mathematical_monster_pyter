@@ -1,11 +1,7 @@
-import sys
+from com.github.dm0896665.main.ui.screens.main_menu import MainMenu
+from com.github.dm0896665.main.util.ui_util import UiUtil
 
-from PySide6.QtWidgets import QApplication
-from com.github.dm0896665.main.ui.screen.main_menu import MainMenu
-
-app = QApplication(sys.argv)
-window = MainMenu()
-window.setWindowTitle("Mathematical Monster Pyter")
-
-window.show()
-app.exec()
+if __name__ == "__main__":
+    UiUtil()
+    UiUtil.change_screen(MainMenu())
+    UiUtil.app.exec()
