@@ -1,5 +1,5 @@
-from com.github.dm0896665.main.ui.prompt import Prompt
 from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import PromptOption
+from com.github.dm0896665.main.ui.prompts.yes_no_prompt import YesNoPrompt
 from com.github.dm0896665.main.ui.screen import Screen
 
 
@@ -12,5 +12,6 @@ class NewGame(Screen):
         print("I'll show....trust")
 
     def on_screen_did_show(self):
-        results: PromptOption = Prompt("Do you want Maths?", PromptOption.YES, PromptOption.NO).show_and_get_results()
-        print("I show" + results.get_option_text)
+        print("I show.")
+        results: PromptOption = YesNoPrompt("Do you want Maths?").show_and_get_results()
+        print("Results:" + results.get_option_text)
