@@ -1,15 +1,15 @@
 import sys
 import time
 
-from PySide6 import QtGui
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSplitter, QSpacerItem, QSizePolicy
+from PySide6.QtCore import Qt, QEvent
+from PySide6.QtGui import QCursor
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSplitter, QSpacerItem, QSizePolicy
 
 from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import PromptOption, PromptOptionButton
 from com.github.dm0896665.main.util.ui_util import UiUtil
 
 
-class Prompt(QGroupBox):
+class Prompt(QWidget):
     def __init__(self, prompt_text: str, *button_options: PromptOption):
         super().__init__()
         # initialize variables for later
@@ -50,23 +50,42 @@ class Prompt(QGroupBox):
 
     def show_prompt(self):
         # Keep current screen to replace back later
-        UiUtil.current_screen.setEnabled(False)
-        self.old_screen: QWidget = UiUtil.current_screen
+        self.old_screen: QWidget = UiUtil.current_screen.ui
+        self.old_screen.setEnabled(False)
 
-        # Add splitter to cover only 1/4 of the screen with the prompt
+        # Cover only 1/4 of the screen with the prompt and make sure the original screen's height is not altered
+        self.setFixedHeight(UiUtil.window.height() / 4)
+        self.old_screen.setFixedHeight(UiUtil.window.height())
+
+        # Add splitter to help put prompt on bottom quarter of screen
         splitter: QSplitter = QSplitter(Qt.Vertical)
         splitter.addWidget(self.old_screen)
-        self.setAlignment(Qt.AlignCenter)
         splitter.addWidget(self)
-        splitter.setSizes([UiUtil.window.height() * 3 / 4, UiUtil.window.height() / 4])
+
+        # Remove handler in the middle of splitter as the size ratio shouldn't change
+        splitter.setHandleWidth(0)
+        splitter.handle(1).setCursor(QCursor(Qt.CursorShape.ArrowCursor))
+        splitter.handle(1).setEnabled(False)
 
         # Add new split screen to window
         UiUtil.window.setCentralWidget(splitter)
+
+        # Make sure prompt is on top, and that the main screen keeps its height
+        self.raise_()
+        splitter.installEventFilter(self)
+
+    # This method will automatically be picked up by installEventFilter(self)
+    def eventFilter(self, source, event):
+        if event.type() == QEvent.Type.Resize:
+            self.old_screen.setFixedHeight(event.size().height())
+        return QWidget.eventFilter(self, source, event)
+
 
     def wait_for_results(self):
         while self.outcome is None:
             # If the user tried to close the window while waiting for a prompt, exit the program
             if not UiUtil.window.isVisible():
+                print("The user has closed the window. Exiting")
                 sys.exit(0)
 
             # Keep waiting for user to select a prompt option
@@ -79,8 +98,8 @@ class Prompt(QGroupBox):
 
     def hide_prompt(self):
         # Reset back to base screen and re-enable it (No prompt)
-        UiUtil.window.setCentralWidget(self.old_screen)
-        UiUtil.current_screen.setEnabled(True)
+        self.old_screen.setEnabled(True)
+        UiUtil.window.setCentralWidget(UiUtil.current_screen.ui)
 
     def on_prompt_button_clicked(self, selected_option: PromptOption):
         self.outcome = selected_option

@@ -1,7 +1,7 @@
 from PySide6 import QtCore, QtUiTools
 import sys
 
-from PySide6.QtWidgets import QApplication, QWidget, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 from com.github.dm0896665.main.ui.screen import Screen
 
@@ -38,15 +38,22 @@ class UiUtil:
     @staticmethod
     def change_screen(new_screen: Screen):
         UiUtil.old_screen: Screen = UiUtil.current_screen
-        UiUtil.current_screen = new_screen
 
         if UiUtil.old_screen is not None:
             UiUtil.old_screen.on_screen_will_hide()
-        UiUtil.load_ui_screen(new_screen.screen_name, new_screen)
+        ui = UiUtil.load_ui_screen(new_screen.screen_name, new_screen)
+        new_screen.setParent(UiUtil.window)
+        ui.setParent(new_screen)
+        new_screen.ui = ui
         new_screen.on_screen_will_show()
 
-        UiUtil.window.setCentralWidget(new_screen)
+        UiUtil.window.setCentralWidget(ui)
+        UiUtil.current_screen = new_screen
 
         if UiUtil.old_screen is not None:
             UiUtil.old_screen.on_screen_did_hide()
         new_screen.on_screen_did_show()
+
+    @staticmethod
+    def setCentralWidget(screen):
+        UiUtil.setCentralWidget(screen.ui)
