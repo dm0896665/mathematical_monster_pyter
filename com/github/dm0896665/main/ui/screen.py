@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
+from PySide6.QtWidgets import QWidget
 
 
 class Screen(QWidget):
@@ -6,9 +6,6 @@ class Screen(QWidget):
         super().__init__()
         self.screen_name = screen_name
 
-        layout = QVBoxLayout(self)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setLayout(layout)
         self.ui :QWidget = None
 
     def on_screen_will_show(self):

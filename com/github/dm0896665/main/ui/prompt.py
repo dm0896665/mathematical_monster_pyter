@@ -1,5 +1,6 @@
 import sys
 import time
+from typing import Generic, TypeVar, Callable
 
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QCursor
@@ -8,13 +9,17 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSplitt
 from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import PromptOption, PromptOptionButton
 from com.github.dm0896665.main.util.ui_util import UiUtil
 
+T = TypeVar('T')
 
-class Prompt(QWidget):
+
+class Prompt(QWidget, Generic[T]):
     def __init__(self, prompt_text: str, *button_options: PromptOption):
         super().__init__()
         # initialize variables for later
         self.old_screen: QWidget = None
-        self.outcome: PromptOption = None
+        self.outcome: T = None
+        self.valid_check_function: Callable[[T], bool] = None
+        self.get_custom_invalid_prompt_text: Callable[[T], bool] = None
 
         # Create prompt label
         self.prompt_label: QLabel = QLabel()
@@ -29,10 +34,7 @@ class Prompt(QWidget):
         self.prompt_options_container.addItem(horizontal_spacer)
 
         # Create option buttons and apply an event handler to each to record the results later and add them to a container
-        for option in button_options:
-            option_button: PromptOptionButton = PromptOptionButton(option.get_option_text)
-            option_button.clicked.connect(lambda state, o = option: self.on_prompt_button_clicked(o))
-            self.prompt_options_container.addWidget(option_button)
+        self.add_options_to_prompt(button_options)
 
         # Create a container for the entire prompt
         self.prompt_container: QVBoxLayout = QVBoxLayout()
@@ -42,13 +44,24 @@ class Prompt(QWidget):
         # Set the layout of the Prompt
         self.setLayout(self.prompt_container)
 
-    def show_and_get_results(self):
-        self.show_prompt()
+    def add_options_to_prompt(self, button_options):
+        for option in button_options:
+            option_button: PromptOptionButton = PromptOptionButton(option.get_option_text)
+            option_button.clicked.connect(lambda state, o=option: self.on_prompt_button_clicked(o))
+            self.prompt_options_container.addWidget(option_button)
+
+    def show_and_get_results(self, prompt=None) -> T:
+        if prompt is None:
+            prompt = self
+        self.show_prompt(prompt)
         self.wait_for_results()
         self.hide_prompt()
         return self.outcome
 
-    def show_prompt(self):
+    def show_prompt(self, prompt=None):
+        if prompt is None:
+            prompt = self
+
         # Keep current screen to replace back later
         self.old_screen: QWidget = UiUtil.current_screen.ui
         self.old_screen.setEnabled(False)
@@ -60,7 +73,7 @@ class Prompt(QWidget):
         # Add splitter to help put prompt on bottom quarter of screen
         splitter: QSplitter = QSplitter(Qt.Vertical)
         splitter.addWidget(self.old_screen)
-        splitter.addWidget(self)
+        splitter.addWidget(prompt)
 
         # Remove handler in the middle of splitter as the size ratio shouldn't change
         splitter.setHandleWidth(0)
@@ -91,7 +104,7 @@ class Prompt(QWidget):
             # Keep waiting for user to select a prompt option
             UiUtil.app.processEvents()
             try:
-                time.sleep(0.05)
+                time.sleep(0.01)
             except KeyboardInterrupt:
                 print("Prompt wait interrupted. Exiting")
                 sys.exit(0)
@@ -101,5 +114,23 @@ class Prompt(QWidget):
         self.old_screen.setEnabled(True)
         UiUtil.window.setCentralWidget(UiUtil.current_screen.ui)
 
-    def on_prompt_button_clicked(self, selected_option: PromptOption):
+    def on_prompt_button_clicked(self, selected_option: T):
+        if not self.is_entry_valid(selected_option):
+            self.hide_prompt()
+            Prompt(self.get_custom_invalid_prompt_text(selected_option), PromptOption.OKAY).show_and_get_results()
+            self.show_prompt()
+            return
+
         self.outcome = selected_option
+
+    def is_entry_valid(self, selected_option: T) -> bool:
+        if self.valid_check_function is None:
+            return True
+        else:
+            return self.valid_check_function(selected_option)
+
+    def get_invalid_prompt_text(self, selected_option: T) -> str:
+        if self.get_custom_invalid_prompt_text is None:
+            return "Sorry, that input is invalid. Try again."
+        else:
+            return self.get_custom_invalid_prompt_text(selected_option)

@@ -11,6 +11,10 @@ class PromptOption(Enum):
     NO = "No"
     OKAY = "Okay"
     CANCEL = "Cancel"
+    ON = "On"
+    OFF = "Off"
+    HEALTH = "Health"
+    STRENGTH = "Strength"
 
     def __new__(cls, *args, **kwds):
         obj = object.__new__(cls)
