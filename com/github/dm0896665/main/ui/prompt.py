@@ -54,6 +54,7 @@ class Prompt(QWidget, Generic[T]):
         if prompt is None:
             prompt = self
         self.show_prompt(prompt)
+        self.on_prompt_did_show()
         self.wait_for_results()
         self.hide_prompt()
         return self.outcome
@@ -86,6 +87,7 @@ class Prompt(QWidget, Generic[T]):
         # Make sure prompt is on top, and that the main screen keeps its height
         self.raise_()
         splitter.installEventFilter(self)
+        UiUtil.app.processEvents()
 
     # This method will automatically be picked up by installEventFilter(self)
     def eventFilter(self, source, event):
@@ -134,3 +136,6 @@ class Prompt(QWidget, Generic[T]):
             return "Sorry, that input is invalid. Try again."
         else:
             return self.get_custom_invalid_prompt_text(selected_option)
+
+    def on_prompt_did_show(self):
+        pass

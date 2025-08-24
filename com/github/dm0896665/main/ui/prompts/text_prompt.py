@@ -13,7 +13,11 @@ class TextPrompt(Prompt[str]):
         self.prompt_options_container.addWidget(self.player_entry)
         okay_button: PromptOptionButton = PromptOptionButton(PromptOption.OKAY.get_option_text)
         okay_button.clicked.connect(lambda: self.on_prompt_button_clicked(self.player_entry.text()))
+        self.player_entry.returnPressed.connect(lambda: okay_button.click())
         self.prompt_options_container.addWidget(okay_button)
 
     def get_invalid_prompt_text(self, selected_option):
         return "Sorry, " + selected_option + " is invalid. Try again."
+
+    def on_prompt_did_show(self):
+        self.player_entry.setFocus()
