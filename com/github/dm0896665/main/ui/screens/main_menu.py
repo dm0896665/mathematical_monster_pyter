@@ -8,7 +8,7 @@ from com.github.dm0896665.main.util.ui_util import UiUtil
 
 class MainMenu(Screen):
     def __init__(self):
-        super().__init__('main_menu')
+        super().__init__()
         self.exit_game_button: QPushButton = None
         self.load_game_button: QPushButton = None
         self.new_game_button: QPushButton = None
