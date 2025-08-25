@@ -20,6 +20,7 @@ class Prompt(QWidget, Generic[T]):
         self.outcome: T = None
         self.valid_check_function: Callable[[T], bool] = None
         self.get_custom_invalid_prompt_text: Callable[[T], bool] = None
+        self.buttons = []
 
         # Create prompt label
         self.prompt_label: QLabel = QLabel()
@@ -48,13 +49,13 @@ class Prompt(QWidget, Generic[T]):
         for option in button_options:
             option_button: PromptOptionButton = PromptOptionButton(option.get_option_text)
             option_button.clicked.connect(lambda state, o=option: self.on_prompt_button_clicked(o))
+            self.buttons.append(option_button)
             self.prompt_options_container.addWidget(option_button)
 
     def show_and_get_results(self, prompt=None) -> T:
         if prompt is None:
             prompt = self
         self.show_prompt(prompt)
-        self.on_prompt_did_show()
         self.wait_for_results()
         self.hide_prompt()
         return self.outcome
@@ -87,7 +88,9 @@ class Prompt(QWidget, Generic[T]):
         # Make sure prompt is on top, and that the main screen keeps its height
         self.raise_()
         splitter.installEventFilter(self)
+        self.setFocus()
         UiUtil.app.processEvents()
+        self.on_prompt_did_show()
 
     # This method will automatically be picked up by installEventFilter(self)
     def eventFilter(self, source, event):
@@ -95,6 +98,18 @@ class Prompt(QWidget, Generic[T]):
             self.old_screen.setFixedHeight(event.size().height())
         return QWidget.eventFilter(self, source, event)
 
+    def keyPressEvent(self, event):
+        # Enter key is the first option
+        if event.key() + 1 == Qt.Key_Enter:
+            self.buttons[0].click()
+            return
+
+        # Convert to Function key index
+        key = event.key() - 16777264
+
+        # Make sure it's an available Function key and "click" it
+        if 0 <= key < len(self.buttons):
+            self.buttons[key].click()
 
     def wait_for_results(self):
         while self.outcome is None:
