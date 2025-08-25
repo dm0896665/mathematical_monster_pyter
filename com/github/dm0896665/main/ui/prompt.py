@@ -87,7 +87,7 @@ class Prompt(QWidget, Generic[T]):
 
         # Make sure prompt is on top, and that the main screen keeps its height
         self.raise_()
-        splitter.installEventFilter(self)
+        splitter.installEventFilter(self) # This will pick up self.eventFilter
         self.setFocus()
         UiUtil.app.processEvents()
         self.on_prompt_did_show()
@@ -98,6 +98,7 @@ class Prompt(QWidget, Generic[T]):
             self.old_screen.setFixedHeight(event.size().height())
         return QWidget.eventFilter(self, source, event)
 
+    # This method will automatically be picked up by the QT Framework
     def keyPressEvent(self, event):
         # Enter key is the first option
         if event.key() + 1 == Qt.Key_Enter:
