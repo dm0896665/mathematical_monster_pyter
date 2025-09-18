@@ -2,6 +2,7 @@ import sys
 import time
 from typing import Generic, TypeVar, Callable
 
+from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSplitter, QSpacerItem, QSizePolicy
@@ -21,6 +22,7 @@ class Prompt(QWidget, Generic[T]):
         self.valid_check_function: Callable[[T], bool] = None
         self.get_custom_invalid_prompt_text: Callable[[T], bool] = None
         self.buttons = []
+        self.loop: QtCore.QEventLoop = QtCore.QEventLoop(self)
 
         # Create prompt label
         self.prompt_label: QLabel = QLabel()
@@ -84,12 +86,9 @@ class Prompt(QWidget, Generic[T]):
 
         # Add new split screen to window
         UiUtil.window.setCentralWidget(splitter)
-
-        # Make sure prompt is on top, and that the main screen keeps its height
         self.raise_()
         splitter.installEventFilter(self) # This will pick up self.eventFilter
         self.setFocus()
-        UiUtil.app.processEvents()
         self.on_prompt_did_show()
 
     # This method will automatically be picked up by installEventFilter(self)
@@ -101,7 +100,7 @@ class Prompt(QWidget, Generic[T]):
     # This method will automatically be picked up by the QT Framework
     def keyPressEvent(self, event):
         # Enter key is the first option
-        if event.key() + 1 == Qt.Key_Enter:
+        if event.key() + 1 == Qt.Key_Enter or event.key() + 1 == Qt.Key_Insert:
             self.buttons[0].click()
             return
 
@@ -113,24 +112,15 @@ class Prompt(QWidget, Generic[T]):
             self.buttons[key].click()
 
     def wait_for_results(self):
-        while self.outcome is None:
-            # If the user tried to close the window while waiting for a prompt, exit the program
-            if not UiUtil.window.isVisible():
-                print("The user has closed the window. Exiting")
-                sys.exit(0)
-
-            # Keep waiting for user to select a prompt option
-            UiUtil.app.processEvents()
-            try:
-                time.sleep(0.01)
-            except KeyboardInterrupt:
-                print("Prompt wait interrupted. Exiting")
-                sys.exit(0)
+        self.loop.exec_()
 
     def hide_prompt(self):
         # Reset back to base screen and re-enable it (No prompt)
         self.old_screen.setEnabled(True)
         UiUtil.window.setCentralWidget(UiUtil.current_screen.ui)
+
+    def close(self):
+        self.loop.quit()
 
     def on_prompt_button_clicked(self, selected_option: T):
         if not self.is_entry_valid(selected_option):
@@ -140,6 +130,7 @@ class Prompt(QWidget, Generic[T]):
             return
 
         self.outcome = selected_option
+        self.loop.exit(True)
 
     def is_entry_valid(self, selected_option: T) -> bool:
         if self.valid_check_function is None:
