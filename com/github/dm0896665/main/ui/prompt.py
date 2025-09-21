@@ -53,6 +53,7 @@ class Prompt(QWidget, Generic[T]):
         for option in button_options:
             option_button: PromptOptionButton = PromptOptionButton(option.get_option_text)
             option_button.clicked.connect(lambda state, o=option: self.on_prompt_button_clicked(o))
+            option_button.setStyleSheet("background-color: darkGray;")
             self.buttons.append(option_button)
             self.prompt_options_container.addWidget(option_button)
 
