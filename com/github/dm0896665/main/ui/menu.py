@@ -13,7 +13,6 @@ T = TypeVar('T')
 class Menu(QWidget, Generic[T]):
     def __init__(self, column_number, *button_options: MenuOption):
         super().__init__()
-        button_options = [MenuOption.FAST_ATTACK, MenuOption.LARGE_ATTACK, MenuOption.SWITCH_WEAPONS, MenuOption.RUN, MenuOption.VIEW_STATS]
         # initialize variables for later
         self.old_screen: QWidget = None
         self.outcome: T = None
