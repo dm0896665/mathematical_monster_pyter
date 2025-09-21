@@ -1,11 +1,9 @@
-import sys
-import time
+import math
 from typing import Generic, TypeVar, Callable
 
-from PySide6 import QtCore
-from PySide6.QtCore import Qt, QEvent
-from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSplitter, QSpacerItem, QSizePolicy
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import Qt, QEvent, QPoint
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSpacerItem, QSizePolicy
 
 from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import PromptOption, PromptOptionButton
 from com.github.dm0896665.main.util.ui_util import UiUtil
@@ -40,12 +38,16 @@ class Prompt(QWidget, Generic[T]):
         self.add_options_to_prompt(button_options)
 
         # Create a container for the entire prompt
-        self.prompt_container: QVBoxLayout = QVBoxLayout()
-        self.prompt_container.addWidget(self.prompt_label)
-        self.prompt_container.addLayout(self.prompt_options_container)
+        self.prompt_container_Layout: QVBoxLayout = QVBoxLayout()
+        self.prompt_container_Layout.addWidget(self.prompt_label)
+        self.prompt_container_Layout.addLayout(self.prompt_options_container)
 
         # Set the layout of the Prompt
-        self.setLayout(self.prompt_container)
+        self.prompt_container: QWidget = QWidget()
+        self.prompt_container.setLayout(self.prompt_container_Layout)
+
+        self.prompt_container.setParent(self)
+        self.prompt_container.setStyleSheet("background-color: gray;")
 
     def add_options_to_prompt(self, button_options):
         for option in button_options:
@@ -54,48 +56,63 @@ class Prompt(QWidget, Generic[T]):
             self.buttons.append(option_button)
             self.prompt_options_container.addWidget(option_button)
 
-    def show_and_get_results(self, prompt=None) -> T:
-        if prompt is None:
-            prompt = self
-        self.show_prompt(prompt)
+    def show_and_get_results(self) -> T:
+        self.initialize_prompt()
+        self.show_prompt()
         self.wait_for_results()
         self.hide_prompt()
         return self.outcome
 
-    def show_prompt(self, prompt=None):
-        if prompt is None:
-            prompt = self
-
-        # Keep current screen to replace back later
+    def initialize_prompt(self):
         self.old_screen: QWidget = UiUtil.current_screen.ui
-        self.old_screen.setEnabled(False)
 
-        # Cover only 1/4 of the screen with the prompt and make sure the original screen's height is not altered
-        self.setFixedHeight(UiUtil.window.height() / 4)
-        self.old_screen.setFixedHeight(UiUtil.window.height())
+        # Cover only 1/4 of the screen with the prompt
+        self.prompt_container.setFixedHeight(UiUtil.window.height() / 4)
 
-        # Add splitter to help put prompt on bottom quarter of screen
-        splitter: QSplitter = QSplitter(Qt.Vertical)
-        splitter.addWidget(self.old_screen)
-        splitter.addWidget(prompt)
+        # Make sure prompt fills the full screen
+        self.setAutoFillBackground(True)
+        self.setAttribute(QtCore.Qt.WA_StyledBackground)
+        self.setStyleSheet('''
+                            QWidget#prompt {
+                                background-color: rgba(64, 64, 64, .64);
+                            }
+                        ''')
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
+        self.setObjectName("prompt")
 
-        # Remove handler in the middle of splitter as the size ratio shouldn't change
-        splitter.setHandleWidth(0)
-        splitter.handle(1).setCursor(QCursor(Qt.CursorShape.ArrowCursor))
-        splitter.handle(1).setEnabled(False)
+        # This will pick up self.eventFilter
+        self.old_screen.installEventFilter(self)
 
-        # Add new split screen to window
-        UiUtil.window.setCentralWidget(splitter)
+    def show_prompt(self):
+        self.setParent(self.old_screen)
+        self.show()
+        self.resize_prompt()
         self.raise_()
-        splitter.installEventFilter(self) # This will pick up self.eventFilter
         self.setFocus()
         self.on_prompt_did_show()
 
-    # This method will automatically be picked up by installEventFilter(self)
+    def resize_prompt(self):
+        # Get the new central widget size
+        parent_height = UiUtil.window.height()
+        parent_width = UiUtil.window.width()
+
+        # Set the height of the top widget to 50%
+        self.prompt_container.setFixedHeight(math.ceil(parent_height / 4))
+        self.prompt_container.setFixedWidth(parent_width)
+        self.setFixedHeight(parent_height)
+        self.setFixedWidth(parent_width)
+
+        # Move to bottom of screen
+        self.prompt_container.move(QPoint(0, int(parent_height * 3/4)))
+
+    def showEvent(self, event):
+        self.setGeometry(self.old_screen.rect())
+
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Resize:
-            self.old_screen.setFixedHeight(event.size().height())
-        return QWidget.eventFilter(self, source, event)
+            self.setGeometry(source.rect())
+            self.resize_prompt()
+        return super().eventFilter(source, event)
 
     # This method will automatically be picked up by the QT Framework
     def keyPressEvent(self, event):
@@ -115,9 +132,8 @@ class Prompt(QWidget, Generic[T]):
         self.loop.exec_()
 
     def hide_prompt(self):
-        # Reset back to base screen and re-enable it (No prompt)
-        self.old_screen.setEnabled(True)
-        UiUtil.window.setCentralWidget(UiUtil.current_screen.ui)
+        self.hide()
+        self.setParent(None)
 
     def close(self):
         self.loop.quit()
