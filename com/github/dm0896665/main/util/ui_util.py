@@ -6,15 +6,20 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 from com.github.dm0896665.main.ui.screen import Screen
 
 
+class GameWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Mathematical Monster Pyter")
+        self.setMinimumSize(700, 500)
+
+    def closeEvent(self, event):
+        sys.exit(0)
+
 class UiUtil:
     app: QApplication = QApplication(sys.argv)
-    window: QMainWindow = QMainWindow()
+    window: GameWindow = GameWindow()
     current_screen: Screen = None
     old_screen: Screen = None
-
-    def __init__(self):
-        UiUtil.window.setWindowTitle("Mathematical Monster Pyter")
-        UiUtil.window.setMinimumSize(700, 500)
 
     @staticmethod
     def load_ui_screen(ui_screen_name, parent=None):
