@@ -1,7 +1,11 @@
+from typing import List
+
 from com.github.dm0896665.main.core.math.math import Math
+from com.github.dm0896665.main.core.weapon.weapon import Weapon
+
 
 class Player:
-    def __init__(self, name: str = ""):
+    def __init__(self, name: str = "UNKNOWN"):
         self.upgrades = 0
         self.upgrade_limit = 11
         self.money = 1000
@@ -9,8 +13,8 @@ class Player:
         self.strength = 0
         self.bank = 0
         self.score = 0
-        self.selected_weapon = None
-        self.weapons = None
+        self.selected_weapon: Weapon = Weapon.STICK
+        self.weapons: List[Weapon] = []
         self.math = Math()
         self.kills = 0
         self.deaths = 0
