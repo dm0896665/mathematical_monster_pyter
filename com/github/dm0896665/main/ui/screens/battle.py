@@ -132,7 +132,7 @@ class Battle(Screen):
 
     def name_prompt_invalid_text(self, selected_option: str) -> bool:
         if selected_option == "":
-            return "Please enter you're character name."
+            return "Please enter your character name."
         return "Sorry, the name '" + selected_option + "' is already taken."
 
     def assign_monster(self):

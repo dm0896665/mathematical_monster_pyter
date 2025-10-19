@@ -17,6 +17,7 @@ from com.github.dm0896665.main.util.ui_util import UiUtil
 class NewGame(Screen):
     def __init__(self):
         super().__init__()
+        self.background_image: str = "background.png"
 
     def on_screen_did_show(self):
         player: Player = PlayerUtil.current_player
@@ -58,5 +59,5 @@ class NewGame(Screen):
 
     def name_prompt_invalid_text(self, selected_option: str) -> bool:
         if selected_option == "":
-            return "Please enter you're character name."
+            return "Please enter your character name."
         return "Sorry, the name '" + selected_option + "' is already taken."
