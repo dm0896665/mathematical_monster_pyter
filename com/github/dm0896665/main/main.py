@@ -1,6 +1,9 @@
 import faulthandler
 import sys
 
+from PySide6.QtGui import QIcon
+
+
 # Make sure the main module is added
 def add_main_module_to_path():
     path_to_add: str = None
@@ -21,5 +24,6 @@ if __name__ == "__main__":
     faulthandler.enable()
     UiUtil()
     UiUtil.change_screen(MainMenu())
+    UiObjects.window.setWindowIcon(QIcon(UiUtil.load_image_map("icon.png")))
     UiObjects.window.show()
     UiObjects.app.exec()
