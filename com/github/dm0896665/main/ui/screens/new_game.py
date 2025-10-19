@@ -1,21 +1,22 @@
 from typing import Callable
 
 from com.github.dm0896665.main.core.player.player import Player
-from com.github.dm0896665.main.ui.prompt import Prompt
 from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import PromptOption
 from com.github.dm0896665.main.ui.prompts.multichoice_prompt import MultichoicePrompt
 from com.github.dm0896665.main.ui.prompts.okay_prompt import OkayPrompt
 from com.github.dm0896665.main.ui.prompts.on_off_prompt import OnOffPrompt
 from com.github.dm0896665.main.ui.prompts.text_prompt import TextPrompt
 from com.github.dm0896665.main.ui.prompts.yes_no_prompt import YesNoPrompt
-from com.github.dm0896665.main.ui.screen import Screen
+from com.github.dm0896665.main.ui.screens.battle import Battle
 from com.github.dm0896665.main.util.player_util import PlayerUtil
 from com.github.dm0896665.main.util.save_load_util import SaveLoadUtil
+from com.github.dm0896665.main.util.ui_objects import Screen
+from com.github.dm0896665.main.util.ui_util import UiUtil
 
 
 class NewGame(Screen):
     def __init__(self):
-        super().__init__("new_game")
+        super().__init__()
 
     def on_screen_did_show(self):
         player: Player = PlayerUtil.current_player
@@ -29,13 +30,13 @@ class NewGame(Screen):
             OkayPrompt("Very well, we will increase your health. You now have " + str(player.health) + " hp.")
         else:
             player.strength+=50
-            OkayPrompt("Very well, we will increase your strength. You now have " + str(player.strength) + " hp.")
+            OkayPrompt("Very well, we will increase your strength. You now have " + str(player.strength) + " strength.")
 
         is_need_practice: PromptOption = YesNoPrompt("Do you want to have a practice fight?").show_and_get_results()
         if is_need_practice == PromptOption.YES:
             OkayPrompt("Good to hear, lets get started.")
-            print("Start Practicing")
-            OkayPrompt("Good job, and for doing the practice fight you get 100 free coins.")
+            UiUtil.change_screen(Battle(True))
+            return
         else:
             OkayPrompt("Okay, no worries")
 
@@ -43,6 +44,8 @@ class NewGame(Screen):
         name_prompt.valid_check_function: Callable[[str], bool] = self.name_prompt_check
         name_prompt.get_custom_invalid_prompt_text: Callable[[str], bool] = self.name_prompt_invalid_text
         name = name_prompt.show_and_get_results()
+        player.name = name
+
         print("Go to travel menu for " + name)
 
     def name_prompt_check(self, selected_option: str) -> bool:

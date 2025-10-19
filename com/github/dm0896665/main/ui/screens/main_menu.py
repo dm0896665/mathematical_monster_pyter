@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import QPushButton
 import sys
 
-from com.github.dm0896665.main.ui.screen import Screen
 from com.github.dm0896665.main.ui.screens.new_game import NewGame
+from com.github.dm0896665.main.util.ui_objects import Screen
 from com.github.dm0896665.main.util.ui_util import UiUtil
 
 

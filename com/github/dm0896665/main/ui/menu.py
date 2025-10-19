@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, QEvent, QPoint
 from PySide6.QtWidgets import QWidget, QSpacerItem, QSizePolicy, QHBoxLayout, QGridLayout
 
 from com.github.dm0896665.main.ui.menus.buttons.menu_option_button import MenuOptionButton, MenuOption
+from com.github.dm0896665.main.util.ui_objects import UiObjects
 from com.github.dm0896665.main.util.ui_util import UiUtil
 
 T = TypeVar('T')
@@ -93,7 +94,7 @@ class Menu(QWidget, Generic[T]):
 
     def initialize_menu(self, menu=None):
         # Initialize class variable
-        self.old_screen: QWidget = UiUtil.current_screen.ui
+        self.old_screen: QWidget = UiObjects.current_screen.ui
 
         # Make menu background
         menu.setAutoFillBackground(True)
@@ -121,15 +122,15 @@ class Menu(QWidget, Generic[T]):
         super().resizeEvent(event)
 
         # Get the new central widget size
-        parent_height = UiUtil.window.height() if UiUtil.window.height() < 1400 else 1400
-        parent_width = UiUtil.window.width() if UiUtil.window.width() < 1000 else 1000
+        parent_height = UiObjects.window.height() if UiObjects.window.height() < 1400 else 1400
+        parent_width = UiObjects.window.width() if UiObjects.window.width() < 1000 else 1000
 
         # Set the height of the top widget to 50%
         self.menu_container.setFixedHeight(int(parent_height / 2))
         self.menu_container.setFixedWidth(int(parent_width / 2))
 
         # Calculate the new center location
-        target_rect = UiUtil.window.centralWidget().geometry()
+        target_rect = UiObjects.window.centralWidget().geometry()
         x = target_rect.x() + (target_rect.width() - self.menu_container.width()) / 2
         y = target_rect.y() + (target_rect.height() - self.menu_container.height()) / 2
 
@@ -137,8 +138,8 @@ class Menu(QWidget, Generic[T]):
         self.menu_container.move(QPoint(int(x), int(y)))
 
     def show_menu(self):
-        self.show()
         self.raise_()
+        UiUtil.toggle_visibility(self)
         self.setFocus()
         self.on_menu_did_show()
 
@@ -172,7 +173,7 @@ class Menu(QWidget, Generic[T]):
         self.loop.exec_()
 
     def hide_menu(self):
-        self.hide()
+        UiUtil.toggle_visibility(self)
         self.setParent(None)
         self.loop.quit()
 

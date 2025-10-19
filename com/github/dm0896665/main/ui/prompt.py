@@ -6,6 +6,8 @@ from PySide6.QtCore import Qt, QEvent, QPoint
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget, QVBoxLayout, QSpacerItem, QSizePolicy
 
 from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import PromptOption, PromptOptionButton
+from com.github.dm0896665.main.util.thread_util import UiThreadUtil
+from com.github.dm0896665.main.util.ui_objects import UiObjects
 from com.github.dm0896665.main.util.ui_util import UiUtil
 
 T = TypeVar('T')
@@ -58,17 +60,23 @@ class Prompt(QWidget, Generic[T]):
             self.prompt_options_container.addWidget(option_button)
 
     def show_and_get_results(self) -> T:
+        if UiThreadUtil.is_on_ui_thread():
+            self.do_show_and_get_results()
+        else:
+            UiThreadUtil.run_on_ui_and_wait(self.do_show_and_get_results)
+        return self.outcome
+
+    def do_show_and_get_results(self):
         self.initialize_prompt()
         self.show_prompt()
         self.wait_for_results()
         self.hide_prompt()
-        return self.outcome
 
     def initialize_prompt(self):
-        self.old_screen: QWidget = UiUtil.current_screen.ui
+        self.old_screen: QWidget = UiObjects.current_screen.ui
 
         # Cover only 1/4 of the screen with the prompt
-        self.prompt_container.setFixedHeight(UiUtil.window.height() / 4)
+        self.prompt_container.setFixedHeight(UiObjects.window.height() / 4)
 
         # Make sure prompt fills the full screen
         self.setAutoFillBackground(True)
@@ -86,16 +94,16 @@ class Prompt(QWidget, Generic[T]):
 
     def show_prompt(self):
         self.setParent(self.old_screen)
-        self.show()
         self.resize_prompt()
         self.raise_()
+        UiUtil.toggle_visibility(self, 100)
         self.setFocus()
         self.on_prompt_did_show()
 
     def resize_prompt(self):
         # Get the new central widget size
-        parent_height = UiUtil.window.height()
-        parent_width = UiUtil.window.width()
+        parent_height = UiObjects.window.height()
+        parent_width = UiObjects.window.width()
 
         # Set the height of the top widget to 50%
         self.prompt_container.setFixedHeight(math.ceil(parent_height / 4))
@@ -133,7 +141,7 @@ class Prompt(QWidget, Generic[T]):
         self.loop.exec_()
 
     def hide_prompt(self):
-        self.hide()
+        UiUtil.toggle_visibility(self, 100)
         self.setParent(None)
 
     def close(self):
