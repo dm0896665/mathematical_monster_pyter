@@ -12,7 +12,6 @@ class MainMenu(Screen):
         self.exit_game_button: QPushButton = None
         self.load_game_button: QPushButton = None
         self.new_game_button: QPushButton = None
-        self.background_image: str = "background.png"
 
     def on_screen_will_show(self):
         self.new_game_button: QPushButton = self.findChild(QPushButton, "ui_new_game_button")

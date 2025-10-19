@@ -64,7 +64,6 @@ class CenteredWidget(QtWidgets.QWidget):
 class Screen(QWidget):
     def __init__(self, screen_name: str = None):
         super().__init__()
-        self.background_image: str = None
         self.pixmap_unscaled: QGraphicsPixmapItem = None
         if screen_name is None:
             screen_name = self.camel_to_snake(self.__class__.__name__)
@@ -89,13 +88,12 @@ class Screen(QWidget):
         pass
 
     def set_up_background_image(self, pixmap: QGraphicsPixmapItem):
-        if self.background_image is not None:
-            self.pixmap_unscaled = pixmap
-            pixmap = self.pixmap_unscaled.scaled(UiObjects.window.size(), Qt.AspectRatioMode.IgnoreAspectRatio)
-            p: QPalette = QPalette()
-            p.setBrush(QPalette.Window, pixmap)
-            self.parent().setPalette(p)
-            self.setAutoFillBackground(True)
+        self.pixmap_unscaled = pixmap
+        pixmap = self.pixmap_unscaled.scaled(UiObjects.window.size(), Qt.AspectRatioMode.IgnoreAspectRatio)
+        p: QPalette = QPalette()
+        p.setBrush(QPalette.Window, pixmap)
+        self.parent().setPalette(p)
+        self.setAutoFillBackground(True)
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Resize:

@@ -2,7 +2,7 @@ from PySide6 import QtCore, QtUiTools
 import sys
 
 from PySide6.QtCore import QTimer, QPropertyAnimation, QEventLoop
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QImage, QPixmap, QPalette, QColor
 from PySide6.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene, QWidget, QGraphicsView, \
     QGraphicsOpacityEffect
 
@@ -44,7 +44,12 @@ class UiUtil:
     def load_image(image_file_name, graphics_view: QGraphicsView=None) -> QGraphicsScene:
         pic: QGraphicsPixmapItem = QGraphicsPixmapItem()
         pic.setTransformationMode(QtCore.Qt.SmoothTransformation)
-        pic.setPixmap(UiUtil.load_image_map(image_file_name))
+
+        image_map: QGraphicsPixmapItem = UiUtil.load_image_map(image_file_name)
+        if image_map is None:
+            return None
+
+        pic.setPixmap(image_map)
 
         scene: QGraphicsScene = QGraphicsScene()
         scene.addItem(pic)
@@ -59,7 +64,11 @@ class UiUtil:
         if not sys.path[0].endswith('images'):
             image_file_name = "com/github/dm0896665/resources/images/" + image_file_name
 
-        image_qt: QImage = QImage(image_file_name)
+        image_qt: QImage = QImage()
+        image_loaded: bool = image_qt.load(image_file_name)
+
+        if not image_loaded:
+            return None
 
         return QPixmap.fromImage(image_qt)
 
@@ -96,9 +105,17 @@ class UiUtil:
             UiObjects.old_screen.on_screen_did_hide()
 
         new_screen.ui.installEventFilter(new_screen)
-        if new_screen.background_image is not None:
-            image_path: str = new_screen.screen_name + "/" + new_screen.background_image
-            new_screen.set_up_background_image(UiUtil.load_image_map(image_path))
+
+        # Set background image
+        image_path: str = "screens/" + new_screen.screen_name + "/background.png"
+        background_map: QGraphicsPixmapItem = UiUtil.load_image_map(image_path)
+        if background_map is not None:
+            new_screen.set_up_background_image(background_map)
+        else:
+            # Reset background, otherwise the last screen's background will show
+            palette: QPalette = QPalette()
+            palette.setColor(QPalette.Window, QColor(77, 77, 77, 100))
+            new_screen.parent().setPalette(palette)
 
         new_screen.on_screen_did_show()
 

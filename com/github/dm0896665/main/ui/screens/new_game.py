@@ -17,7 +17,6 @@ from com.github.dm0896665.main.util.ui_util import UiUtil
 class NewGame(Screen):
     def __init__(self):
         super().__init__()
-        self.background_image: str = "background.png"
 
     def on_screen_did_show(self):
         player: Player = PlayerUtil.current_player

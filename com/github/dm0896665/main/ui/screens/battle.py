@@ -79,7 +79,6 @@ class Battle(Screen):
         self.starting_player_health: int = 0
         self.battle_session: BattleSession = BattleSession(is_practice)
         self.is_practice: bool = is_practice
-        self.background_image: str = "background.png"
 
     def on_screen_did_show(self):
         self.battle_session.player = PlayerUtil.current_player
