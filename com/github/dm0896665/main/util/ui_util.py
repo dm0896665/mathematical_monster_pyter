@@ -107,7 +107,7 @@ class UiUtil:
         new_screen.ui.installEventFilter(new_screen)
 
         # Set background image
-        image_path: str = "screens/" + new_screen.screen_name + "/background.png"
+        image_path: str = new_screen.screen_image_location + "background.png"
         background_map: QGraphicsPixmapItem = UiUtil.load_image_map(image_path)
         if background_map is not None:
             new_screen.set_up_background_image(background_map)
@@ -117,6 +117,7 @@ class UiUtil:
             palette.setColor(QPalette.Window, QColor(77, 77, 77, 100))
             new_screen.parent().setPalette(palette)
 
+        new_screen.init_ui()
         new_screen.on_screen_did_show()
 
     @staticmethod

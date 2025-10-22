@@ -8,6 +8,7 @@ from com.github.dm0896665.main.ui.prompts.on_off_prompt import OnOffPrompt
 from com.github.dm0896665.main.ui.prompts.text_prompt import TextPrompt
 from com.github.dm0896665.main.ui.prompts.yes_no_prompt import YesNoPrompt
 from com.github.dm0896665.main.ui.screens.battle import Battle
+from com.github.dm0896665.main.ui.screens.travel_menu import TravelMenu
 from com.github.dm0896665.main.util.player_util import PlayerUtil
 from com.github.dm0896665.main.util.save_load_util import SaveLoadUtil
 from com.github.dm0896665.main.util.ui_objects import Screen
@@ -46,7 +47,7 @@ class NewGame(Screen):
         name = name_prompt.show_and_get_results()
         player.name = name
 
-        print("Go to travel menu for " + name)
+        UiUtil.change_screen(TravelMenu(True))
 
     def name_prompt_check(self, selected_option: str) -> bool:
         if selected_option == "":
