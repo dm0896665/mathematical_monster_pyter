@@ -89,6 +89,7 @@ class UiUtil:
     @staticmethod
     def do_change_screen(new_screen: Screen):
         UiObjects.old_screen: Screen = UiObjects.current_screen
+        new_screen.previous_screen = UiObjects.current_screen
         if UiObjects.old_screen is not None:
             UiObjects.old_screen.on_screen_will_hide()
 

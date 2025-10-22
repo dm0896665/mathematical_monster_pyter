@@ -70,6 +70,7 @@ class Screen(QWidget):
             screen_name = self.camel_to_snake(self.__class__.__name__)
         self.screen_name = screen_name
         self.screen_image_location = "screens/" + screen_name + "/"
+        self.previous_screen: Screen = None
 
         self.ui: QWidget = None
 
@@ -168,7 +169,7 @@ class OutlinedGraphicsTextItem(QGraphicsTextItem):
 
 class MapLocation(QGraphicsPixmapItem):
     def __init__(self, pix_map: QPixmap, name: str, width_percent: int, height_percent: int,
-                 width_percent_location: int, height_percent_location: int, callback=None):
+                 width_percent_location: int, height_percent_location: int, callback=None, is_bottom_label: bool = False):
         super().__init__(pix_map)
         self.name = name
         self.callback = callback
@@ -177,6 +178,7 @@ class MapLocation(QGraphicsPixmapItem):
         self.width_percent_location = width_percent_location
         self.height_percent_location = height_percent_location
         self.original_pixmap = pix_map
+        self.is_bottom_label = is_bottom_label
 
         # Setup object for hovering events
         self.setAcceptHoverEvents(True)
@@ -211,7 +213,7 @@ class MapLocation(QGraphicsPixmapItem):
         # Update location of location label
         self.location_label.setPos(
             (self.pixmap().width() - self.location_label.boundingRect().width()) / 2,
-            -(self.pixmap().height() / 4) - 7,
+            self.pixmap().height() if self.is_bottom_label else -(self.pixmap().height() / 4) - 7,
         )
 
         # Show location label and location outline
@@ -255,6 +257,10 @@ class MapScreen(Screen):
 
         # Add view to layout
         self.ui.layout().addWidget(self.view)
+
+    def on_screen_will_hide(self):
+        self.ui.layout().removeWidget(self.view)
+        self.locations.clear()
 
     def add_location(self, map_location: MapLocation):
         self.position_location_on_map(map_location)
@@ -304,6 +310,9 @@ class MapScreen(Screen):
 
         # Add location to scene/ view
         self.scene.addItem(location)
+
+    def get_map_location_image_path(self, image_name) -> str:
+        return "screens/map_locations/" + image_name
 
 
 class UiObjects:
