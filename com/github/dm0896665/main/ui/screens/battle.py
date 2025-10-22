@@ -20,6 +20,7 @@ from com.github.dm0896665.main.ui.prompts.buttons.prompt_option_button import Pr
 from com.github.dm0896665.main.ui.prompts.okay_prompt import OkayPrompt
 from com.github.dm0896665.main.ui.prompts.text_prompt import TextPrompt
 from com.github.dm0896665.main.ui.prompts.yes_no_prompt import YesNoPrompt
+from com.github.dm0896665.main.ui.screens.travel_menu import TravelMenu
 from com.github.dm0896665.main.util.custom_ui_widgets import CustomGraphicsView
 from com.github.dm0896665.main.util.player_util import PlayerUtil
 from com.github.dm0896665.main.util.save_load_util import SaveLoadUtil
@@ -119,7 +120,7 @@ class Battle(Screen):
 
             OkayPrompt("After your " + str(self.battle_session.round) + " round fight, you have " + str(self.battle_session.player.health) + " hp, and your score is " + str(self.battle_session.player.score) + ".")
 
-        print("Go to travel menu for " + PlayerUtil.current_player.name)
+        UiUtil.change_screen(TravelMenu(self.is_practice))
 
     def name_prompt_check(self, selected_option: str) -> bool:
         if selected_option == "":
