@@ -3,13 +3,17 @@ from com.github.dm0896665.main.util.ui_util import UiUtil
 
 
 class Village(MapScreen):
+    def __init__(self):
+        super().__init__("The Village")
+
     def on_screen_did_show(self):
         back_image = UiUtil.load_image_map(self.get_map_location_image_path("back.png"))
-        back_button: MapLocation = MapLocation(back_image, "Back", 10, 10, 0, 0, self.on_back_button_clicked, True)
+        back_button: MapLocation = MapLocation(back_image, "Back", 7, 10, 1, 2, self.on_back_button_clicked, True)
+        back_button.is_location = False
         self.add_location(back_button)
 
         bank_image = UiUtil.load_image_map(self.get_map_location_image_path("bank.png"))
-        bank_location: MapLocation = MapLocation(bank_image, "Bank", 30, 43, 4, 32, self.on_bank_location_clicked)
+        bank_location: MapLocation = MapLocation(bank_image, "Bank", 30, 43, 3, 30, self.on_bank_location_clicked)
         self.add_location(bank_location)
 
         shop_image = UiUtil.load_image_map(self.get_map_location_image_path("shop.png"))
@@ -19,6 +23,8 @@ class Village(MapScreen):
         blacksmith_image = UiUtil.load_image_map(self.get_map_location_image_path("blacksmith.png"))
         blacksmith_location: MapLocation = MapLocation(blacksmith_image, "Blacksmith", 30, 35, 70, 36, self.on_blacksmith_location_clicked)
         self.add_location(blacksmith_location)
+
+        self.flash_map_header()
 
     def on_back_button_clicked(self, location: MapLocation):
         UiUtil.change_screen(self.previous_screen)
