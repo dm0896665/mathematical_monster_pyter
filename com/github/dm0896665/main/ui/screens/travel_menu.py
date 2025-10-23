@@ -12,7 +12,7 @@ class TravelMenu(MapScreen):
         self.is_first_time: bool = is_first_time
 
 
-    def on_screen_did_show(self):
+    def setup_locations(self):
         bank_image = UiUtil.load_image_map(self.get_map_location_image_path("bank_front.png"))
         bank_location: MapLocation = MapLocation(bank_image, "Bank", 20, 20, 7, 25, self.on_bank_location_clicked)
         self.add_location(bank_location)

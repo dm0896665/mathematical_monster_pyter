@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene,
     QGraphicsOpacityEffect
 
 from com.github.dm0896665.main.util.custom_ui_widgets import CustomGraphicsView
-from com.github.dm0896665.main.util.ui_objects import UiObjects, Screen
+from com.github.dm0896665.main.util.ui_objects import UiObjects, Screen, MapScreen
 
 
 class UiUtil:
@@ -88,8 +88,11 @@ class UiUtil:
 
     @staticmethod
     def do_change_screen(new_screen: Screen):
+        # Only set the new screen's previous screen if we are going forward a screen (as previous screen is used to go back to the previous screen)
+        if UiObjects.old_screen and (not new_screen.previous_screen or UiObjects.old_screen.screen_name != new_screen.screen_name):
+            new_screen.previous_screen = UiObjects.current_screen
+
         UiObjects.old_screen: Screen = UiObjects.current_screen
-        new_screen.previous_screen = UiObjects.current_screen
         if UiObjects.old_screen is not None:
             UiObjects.old_screen.on_screen_will_hide()
 
@@ -119,6 +122,11 @@ class UiUtil:
             new_screen.parent().setPalette(palette)
 
         new_screen.init_ui()
+        if isinstance(new_screen, MapScreen):
+            new_screen.setup_locations()
+            if new_screen.header_name and new_screen.is_disappearing_header and new_screen.is_transparent_header:
+                new_screen.flash_map_header()
+
         new_screen.on_screen_did_show()
 
     @staticmethod

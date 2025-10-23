@@ -287,7 +287,7 @@ class MapScreen(Screen):
         self.header_box: QGraphicsRectItem = None
 
         # Customize Header visuals
-        self.is_transparent_header: bool = False
+        self.is_transparent_header: bool = True
         self.is_disappearing_header: bool = True
 
     def init_ui(self):
@@ -321,6 +321,9 @@ class MapScreen(Screen):
 
         # Add view to layout
         self.ui.layout().addWidget(self.view)
+
+    def setup_locations(self):
+        pass
 
     def set_radial_gradient_background(self):
         # Create a QRadialGradient object
@@ -363,7 +366,7 @@ class MapScreen(Screen):
         self.locations.append(map_location)
 
     def flash_map_header(self):
-        if self.is_disappearing_header and self.is_transparent_header:
+        if self.header_name and self.is_disappearing_header and self.is_transparent_header:
             self.toggle_visibility(self.header_box, 500)
             self.toggle_visibility(self.header_label, 500)
             QTimer.singleShot(2000,
