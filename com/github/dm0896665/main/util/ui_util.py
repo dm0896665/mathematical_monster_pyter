@@ -1,3 +1,6 @@
+import inspect
+import os
+
 from PySide6 import QtCore, QtUiTools
 import sys
 
@@ -6,13 +9,39 @@ from PySide6.QtGui import QImage, QPixmap, QPalette, QColor
 from PySide6.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene, QWidget, QGraphicsView, \
     QGraphicsOpacityEffect
 
-from com.github.dm0896665.main.util.custom_ui_widgets import CustomGraphicsView
 from com.github.dm0896665.main.util.ui_objects import UiObjects, Screen, MapScreen
+
+# Gets all custom widget classes from custom_ui_widgets.py such as CustomGraphicsView, Button, etc.
+def get_custom_widget_classes():
+    file_path = 'com/github/dm0896665/main/util/custom_ui_widgets.py'
+
+    # Add the directory containing the file to sys.path so it can be imported
+    sys.path.insert(0, os.path.dirname(os.path.abspath(file_path)))
+
+    # Import the module dynamically
+    module_name = os.path.splitext(os.path.basename(file_path))[0]
+    try:
+        module = __import__(module_name)
+    except ImportError as e:
+        print(f"Error importing module '{module_name}': {e}")
+        sys.exit(1)
+
+    # Get all members of the module
+    all_members = inspect.getmembers(module)
+
+    # Filter for classes defined within that module
+    return [
+        obj for name, obj in all_members
+        if inspect.isclass(obj) and obj.__module__ == module_name
+    ]
 
 
 class UiUtil:
+    # Custom widgets need to be registered to be used in .ui files
+    custom_widgets = get_custom_widget_classes()
     loader: QtUiTools.QUiLoader = QtUiTools.QUiLoader()
-    loader.registerCustomWidget(CustomGraphicsView)
+    for custom_widget in custom_widgets:
+        loader.registerCustomWidget(custom_widget)
 
     @staticmethod
     def load_ui_screen(ui_screen_name, parent=None):
