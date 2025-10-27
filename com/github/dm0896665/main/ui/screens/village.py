@@ -1,3 +1,4 @@
+from com.github.dm0896665.main.ui.screens.bank import Bank
 from com.github.dm0896665.main.util.ui_objects import MapScreen, MapLocation, UiObjects
 from com.github.dm0896665.main.util.ui_util import UiUtil
 
@@ -28,7 +29,7 @@ class Village(MapScreen):
         UiUtil.change_screen(self.previous_screen)
 
     def on_bank_location_clicked(self, location: MapLocation):
-        print(f"{location.name} was clicked!")
+        UiUtil.change_screen(Bank())
 
     def on_shop_location_clicked(self, location: MapLocation):
         print(f"{location.name} was clicked!")

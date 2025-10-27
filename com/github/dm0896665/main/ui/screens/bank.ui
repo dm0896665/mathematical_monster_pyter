@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>bank</class>
+ <widget class="QWidget" name="bank">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>674</width>
+    <height>377</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QWidget" name="bank_layout" native="true">
+       <property name="styleSheet">
+        <string notr="true">background-color: rgba(234, 171, 8, 240); border-radius: 13%;</string>
+       </property>
+       <layout class="QVBoxLayout" name="bank_layout_layout">
+        <item>
+         <layout class="QHBoxLayout" name="bank_info_layout">
+          <item>
+           <layout class="QVBoxLayout" name="money_in_bank_layout">
+            <item>
+             <widget class="Label" name="label">
+              <property name="text">
+               <string>Current coins in bank:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="Label" name="current_coins_in_bank_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="Line" name="line">
+            <property name="styleSheet">
+             <string notr="true">background-color:#6B3F02;</string>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="money_on_player_layout">
+            <item>
+             <widget class="Label" name="label_2">
+              <property name="text">
+               <string>Current coins on you:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="Label" name="current_coins_on_player_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QWidget" name="action_widget" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout">
+           <item>
+            <widget class="Label" name="action_label">
+             <property name="text">
+              <string>Amount of coins to deposit:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QWidget" name="action_bottom_widget" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="IntegerInput" name="action_amount_input">
+                <property name="alignment">
+                 <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                </property>
+                <property name="placeholderText">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="Label" name="action_amount_unit_label">
+                <property name="text">
+                 <string>coins</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_2">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QWidget" name="nav_button_layout" native="true">
+          <layout class="QHBoxLayout" name="_2">
+           <item>
+            <widget class="Button" name="deposit">
+             <property name="text">
+              <string>Deposit</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="Button" name="withdraw">
+             <property name="text">
+              <string>Withdraw</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="Button" name="back">
+             <property name="text">
+              <string>Back</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="action_button_layout" native="true">
+          <layout class="QHBoxLayout" name="_3">
+           <item>
+            <widget class="Button" name="action_button">
+             <property name="text">
+              <string>Action</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="Button" name="cancel_button">
+             <property name="text">
+              <string>Cancel</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Button</class>
+   <extends>QPushButton</extends>
+   <header>com.github.dm0896665.main.ui.screen</header>
+  </customwidget>
+  <customwidget>
+   <class>Label</class>
+   <extends>QLabel</extends>
+   <header>com.github.dm0896665.main.ui.screen</header>
+  </customwidget>
+  <customwidget>
+   <class>IntegerInput</class>
+   <extends>QLineEdit</extends>
+   <header>com.github.dm0896665.main.ui.screen</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

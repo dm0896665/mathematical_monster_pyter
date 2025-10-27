@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 
 from com.github.dm0896665.main.ui.prompts.okay_prompt import OkayPrompt
+from com.github.dm0896665.main.ui.screens.bank import Bank
 from com.github.dm0896665.main.ui.screens.village import Village
 from com.github.dm0896665.main.util.ui_objects import MapScreen, MapLocation
 from com.github.dm0896665.main.util.ui_util import UiUtil
@@ -29,7 +30,7 @@ class TravelMenu(MapScreen):
             OkayPrompt("Click a location on the map to go there.")
 
     def on_bank_location_clicked(self, location: MapLocation):
-        print(f"{location.name} was clicked!")
+        UiUtil.change_screen(Bank())
 
     def on_village_location_clicked(self, location: MapLocation):
         UiUtil.change_screen(Village())
