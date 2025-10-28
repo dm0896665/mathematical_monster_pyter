@@ -20,18 +20,22 @@ class Bank(Screen):
         super().__init__()
         self.bank_mode = BankMode.HOME
 
+        # Action button layout
         self.action_button_layout: QWidget = None
         self.action_button: Button = None
         self.cancel_button: Button = None
 
+        # Action widget layout
         self.action_widget: QWidget = None
         self.action_amount: IntegerInput = None
         self.action_label: Label = None
 
+        # Main bank layout
         self.bank_layout_widget: QWidget = None
         self.current_coins_on_player: Label = None
         self.current_coins_in_bank: Label = None
 
+        # Main nav button layout
         self.nav_button_layout: QWidget = None
         self.deposit_button: Button = None
         self.withdraw_button: Button = None
@@ -40,34 +44,39 @@ class Bank(Screen):
         self.player = PlayerUtil.current_player
 
     def on_screen_did_show(self):
+        # Make bank layout not fill the full screen and center it
         self.bank_layout_widget: Label = self.ui.bank_layout
         self.adjust_layout_size()
 
+        # Initialize current bank/ money info
         self.current_coins_in_bank: Label = self.ui.current_coins_in_bank_label
         self.current_coins_in_bank.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         self.current_coins_on_player: Label = self.ui.current_coins_on_player_label
         self.current_coins_on_player.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         self.update_amounts()
 
+        # Initialize action widget
         self.action_widget: QWidget = self.ui.action_widget
         self.action_widget.setVisible(False)
         self.action_widget.setStyleSheet("background-color: transparent;")
 
+        # Initialize action amount
         self.action_amount: IntegerInput = self.ui.action_amount_input
         self.action_amount.setValidator(QIntValidator(0, 1000000))
         self.action_amount.textChanged.connect(self.on_action_amount_changed)
         self.action_amount.returnPressed.connect(self.action_button_clicked)
 
+        # Initialize action label
         self.action_label: Label = self.ui.action_label
 
+        # Initialize action buttons
         self.action_button_layout: QWidget = self.ui.action_button_layout
         self.action_button_layout.setVisible(False)
         self.action_button_layout.setStyleSheet("background-color: transparent;")
         self.action_button: Button = self.ui.action_button
         self.cancel_button: Button = self.ui.cancel_button
 
+        # Initialize nav buttons
         self.nav_button_layout = self.ui.nav_button_layout
         self.nav_button_layout.setStyleSheet("background-color: transparent;")
         self.deposit_button: Button = self.ui.deposit
@@ -85,14 +94,17 @@ class Bank(Screen):
         self.bank_layout_widget.setFixedHeight(self.ui.height() * 3 / 4)
 
     def initialize_button_listeners(self):
+        # Add listeners for action buttons
         self.action_button.clicked.connect(self.action_button_clicked)
         self.cancel_button.clicked.connect(self.cancel_button_clicked)
 
+        # Add listeners for nav buttons
         self.deposit_button.clicked.connect(self.deposit_button_clicked)
         self.withdraw_button.clicked.connect(self.withdraw_button_clicked)
         self.back_button.clicked.connect(self.back_button_button_clicked)
 
     def action_button_clicked(self):
+        # Update player info
         if self.bank_mode == BankMode.DEPOSIT:
             self.player.bank = self.player.bank + int(self.action_amount.text())
             self.player.money = self.player.money - int(self.action_amount.text())
@@ -121,34 +133,43 @@ class Bank(Screen):
         self.update_layout_visibilities()
 
     def on_action_amount_changed(self):
+        # Empty input should disable action button
         if self.action_amount.text() == "":
             self.action_button.setDisabled(True)
             return
 
+        # Get amount
         amount: int = int(self.action_amount.text())
 
+        # Don't let amount go less than 0
         if amount < 0:
             self.action_amount.setText("0")
             return
 
+        # Don't allow user to deposit or withdraw more than they can
         if self.bank_mode == BankMode.DEPOSIT and amount > self.player.money:
             self.action_amount.setText(str(self.player.money))
         elif self.bank_mode == BankMode.WITHDRAW and amount > self.player.bank:
             self.action_amount.setText(str(self.player.bank))
 
+        # Enable action button
         self.action_button.setDisabled(False)
 
     def update_layout_visibilities(self):
+        # Switch button set and hide/ show action widget based on bank mode
         self.action_button_layout.setVisible(self.bank_mode != BankMode.HOME)
         self.action_widget.setVisible(self.bank_mode != BankMode.HOME)
         self.nav_button_layout.setVisible(self.bank_mode == BankMode.HOME)
 
+        # Focus action amount and disable action button when going into deposit/ withdraw mode
         if self.bank_mode != BankMode.HOME:
             self.action_amount.setFocus()
             self.action_button.setDisabled(True)
         else:
+            # Clear amount when leaving deposit/ withdraw mode
             self.action_amount.setText("")
 
+        # Update action button and label text
         if self.bank_mode == BankMode.DEPOSIT:
             self.action_button.setText("Deposit")
             self.action_label.setText("Amount of coins to deposit:")
