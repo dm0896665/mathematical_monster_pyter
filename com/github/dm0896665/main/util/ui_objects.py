@@ -250,6 +250,9 @@ class MapLocation(QGraphicsPixmapItem):
             self.pixmap().height() if self.is_bottom_label else -(self.pixmap().height() / 4) - 7,
         )
 
+        # update pen to outline around location image on hover
+        self.highlight_pen = QPen(QColor(UiObjects.highlight_color), font_size / 6, Qt.SolidLine)
+
         # Show location label and location outline
         self.location_label.setVisible(True)
         self._is_hovered = True
