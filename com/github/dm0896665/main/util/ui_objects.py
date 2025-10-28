@@ -251,7 +251,12 @@ class MapLocation(QGraphicsPixmapItem):
         )
 
         # update pen to outline around location image on hover
-        self.highlight_pen = QPen(QColor(UiObjects.highlight_color), font_size / 6, Qt.SolidLine)
+        self.highlight_pen = QPen(
+            QColor(UiObjects.highlight_color), font_size / 6,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap,
+            Qt.PenJoinStyle.RoundJoin
+        )
 
         # Show location label and location outline
         self.location_label.setVisible(True)
