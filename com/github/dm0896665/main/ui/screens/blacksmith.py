@@ -57,16 +57,14 @@ class Blacksmith(Screen):
 
         self.adjust_layout_size()
 
-    def on_buy_actioned_callback(self, weapon_cell: WeaponItemTableCell, did_buy: bool):
-        if did_buy:
-            cell: WeaponItemTableCell = WeaponItemTableCell(weapon_cell.weapon, self.player, WeaponItemTableCellType.SELL, self.on_sell_actioned_callback)
-            self.inventory.add_item(cell)
-            WeaponUtil.add_weapon(weapon_cell.weapon)
+    def on_buy_actioned_callback(self, weapon_cell: WeaponItemTableCell):
+        cell: WeaponItemTableCell = WeaponItemTableCell(weapon_cell.weapon, self.player, WeaponItemTableCellType.SELL, self.on_sell_actioned_callback)
+        self.inventory.add_item(cell)
+        WeaponUtil.add_weapon(weapon_cell.weapon)
 
-    def on_sell_actioned_callback(self, weapon_cell: WeaponItemTableCell, did_sell: bool):
-        if did_sell:
-            self.inventory.remove_item(weapon_cell)
-            WeaponUtil.remove_weapon(weapon_cell.weapon)
+    def on_sell_actioned_callback(self, weapon_cell: WeaponItemTableCell):
+        self.inventory.remove_item(weapon_cell)
+        WeaponUtil.remove_weapon(weapon_cell.weapon)
 
     def resize_function(self, source: QWidget, event: QResizeEvent):
         self.adjust_layout_size()
