@@ -26,13 +26,17 @@ class WeaponUtil:
     @staticmethod
     def get_owned_weapons() -> List[Weapon]:
         player: Player = PlayerUtil.current_player
-        player.weapons + [player.selected_weapon]
+        return player.weapons + [player.selected_weapon]
 
     @staticmethod
     def get_unowned_weapons() -> List[Weapon]:
         owned_weapons: List[Weapon] = WeaponUtil.get_owned_weapons()
         owned_weapon_names: List[str] = [weapon.name for weapon in owned_weapons]
         return [weapon for weapon in Weapon if weapon.name not in owned_weapon_names]
+
+    @staticmethod
+    def get_all_weapons() -> List[Weapon]:
+        return [weapon for weapon in Weapon]
 
     @staticmethod
     def weapon_drop(monster: Monster) -> List[Weapon]:
@@ -92,3 +96,18 @@ class WeaponUtil:
 
         # Return dropped weapons
         return weapons_dropped
+
+    @staticmethod
+    def remove_weapon(weapon: Weapon):
+        player: Player = PlayerUtil.current_player
+        if player.selected_weapon == weapon:
+            player.selected_weapon = player.weapons[0]
+            player.weapons.remove(player.selected_weapon)
+        else:
+            player.weapons.remove(weapon)
+
+    @staticmethod
+    def add_weapon(weapon: Weapon):
+        player: Player = PlayerUtil.current_player
+        player.weapons.append(player.selected_weapon)
+        player.selected_weapon = weapon

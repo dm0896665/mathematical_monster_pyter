@@ -22,6 +22,7 @@ from com.github.dm0896665.main.ui.prompts.text_prompt import TextPrompt
 from com.github.dm0896665.main.ui.prompts.yes_no_prompt import YesNoPrompt
 from com.github.dm0896665.main.ui.screens.travel_menu import TravelMenu
 from com.github.dm0896665.main.util.custom_ui_widgets import CustomGraphicsView
+from com.github.dm0896665.main.util.image_util import ImageUtil
 from com.github.dm0896665.main.util.player_util import PlayerUtil
 from com.github.dm0896665.main.util.save_load_util import SaveLoadUtil
 from com.github.dm0896665.main.util.ui_util import UiUtil
@@ -89,7 +90,7 @@ class Battle(Screen):
 
     def show_monster(self):
         temp_monster: CustomGraphicsView  = CustomGraphicsView()
-        UiUtil.load_monster_image(self.battle_session.monster.monster_name.lower().replace(" ", "_"), temp_monster)
+        ImageUtil.load_monster_image(self.battle_session.monster.monster_name.lower().replace(" ", "_"), temp_monster)
         temp_monster_label: QLabel = QLabel()
         temp_monster_label.setText("A wild " + self.battle_session.monster.monster_name + " appears!")
         temp_monster_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -154,11 +155,11 @@ class Battle(Screen):
         player.setMaximumWidth(width/3 + width/20)
 
         monster.hide()
-        UiUtil.load_monster_image(self.battle_session.monster.monster_name.lower().replace(" ", "_"), monster)
+        ImageUtil.load_monster_image(self.battle_session.monster.monster_name.lower().replace(" ", "_"), monster)
         UiUtil.toggle_visibility(monster)
 
         player.hide()
-        UiUtil.load_player_image("player_facing_right", player)
+        ImageUtil.load_player_image("player_facing_right", player)
         UiUtil.toggle_visibility(player)
 
         if self.is_practice:

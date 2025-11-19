@@ -5,11 +5,12 @@ from PySide6 import QtCore, QtUiTools
 import sys
 
 from PySide6.QtCore import QTimer, QPropertyAnimation, QEventLoop
-from PySide6.QtGui import QImage, QPixmap, QPalette, QColor
-from PySide6.QtWidgets import QApplication, QGraphicsPixmapItem, QGraphicsScene, QWidget, QGraphicsView, \
-    QGraphicsOpacityEffect
+from PySide6.QtGui import QPalette, QColor, QPixmap
+from PySide6.QtWidgets import QApplication, QGraphicsPixmapItem, QWidget, QGraphicsOpacityEffect
 
-from com.github.dm0896665.main.util.ui_objects import UiObjects, Screen, MapScreen
+from com.github.dm0896665.main.util.image_util import ImageUtil
+from com.github.dm0896665.main.util.ui_objects import UiObjects, Screen, MapScreen, BackButton
+
 
 # Gets all custom widget classes from custom_ui_widgets.py such as CustomGraphicsView, Button, etc.
 def get_custom_widget_classes():
@@ -62,46 +63,6 @@ class UiUtil:
         return ui
 
     @staticmethod
-    def load_player_image(image_file_name, graphics_view=None):
-        return UiUtil.load_image('player/' + image_file_name + ".png", graphics_view)
-
-    @staticmethod
-    def load_monster_image(image_file_name, graphics_view=None):
-        return UiUtil.load_image('monsters/' + image_file_name + ".png", graphics_view)
-
-    @staticmethod
-    def load_image(image_file_name, graphics_view: QGraphicsView=None) -> QGraphicsScene:
-        pic: QGraphicsPixmapItem = QGraphicsPixmapItem()
-        pic.setTransformationMode(QtCore.Qt.SmoothTransformation)
-
-        image_map: QGraphicsPixmapItem = UiUtil.load_image_map(image_file_name)
-        if image_map is None:
-            return None
-
-        pic.setPixmap(image_map)
-
-        scene: QGraphicsScene = QGraphicsScene()
-        scene.addItem(pic)
-
-        if graphics_view is not None:
-            graphics_view.setScene(scene)
-
-        return scene
-
-    @staticmethod
-    def load_image_map(image_file_name) -> QGraphicsPixmapItem:
-        if not sys.path[0].endswith('images'):
-            image_file_name = "com/github/dm0896665/resources/images/" + image_file_name
-
-        image_qt: QImage = QImage()
-        image_loaded: bool = image_qt.load(image_file_name)
-
-        if not image_loaded:
-            return None
-
-        return QPixmap.fromImage(image_qt)
-
-    @staticmethod
     def change_screen(new_screen: Screen):
         ui = UiUtil.load_ui_screen(new_screen.screen_name, new_screen)
         new_screen.ui = ui
@@ -118,7 +79,7 @@ class UiUtil:
     @staticmethod
     def do_change_screen(new_screen: Screen):
         # Only set the new screen's previous screen if we are going forward a screen (as previous screen is used to go back to the previous screen)
-        if UiObjects.old_screen and (not new_screen.previous_screen or UiObjects.old_screen.screen_name != new_screen.screen_name):
+        if not new_screen.previous_screen or UiObjects.old_screen.screen_name != new_screen.screen_name:
             new_screen.previous_screen = UiObjects.current_screen
 
         UiObjects.old_screen: Screen = UiObjects.current_screen
@@ -141,7 +102,7 @@ class UiUtil:
 
         # Set background image
         image_path: str = new_screen.screen_image_location + "background.png"
-        background_map: QGraphicsPixmapItem = UiUtil.load_image_map(image_path)
+        background_map: QPixmap = ImageUtil.load_image_map(image_path)
         if background_map is not None:
             new_screen.set_up_background_image(background_map)
         else:
@@ -151,6 +112,11 @@ class UiUtil:
             new_screen.parent().setPalette(palette)
 
         new_screen.init_ui()
+        if new_screen.has_back_button:
+            if Screen.on_back_button_clicked != new_screen.__class__.on_back_button_clicked:
+                BackButton(new_screen.ui, new_screen.on_back_button_clicked).show()
+            else:
+                BackButton(new_screen.ui, lambda: (UiUtil.change_screen(new_screen.previous_screen))).show()
         if isinstance(new_screen, MapScreen):
             new_screen.setup_locations()
             if new_screen.header_name and new_screen.is_disappearing_header and new_screen.is_transparent_header:

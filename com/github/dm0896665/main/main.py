@@ -1,8 +1,9 @@
 import faulthandler
 import sys
 
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QGraphicsPixmapItem
+from PySide6.QtGui import QIcon, QPixmap
+
+from com.github.dm0896665.main.util.image_util import ImageUtil
 
 
 # Make sure the main module is added
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     UiUtil()
     UiUtil.change_screen(MainMenu())
 
-    image_map: QGraphicsPixmapItem = UiUtil.load_image_map("icon.png")
+    image_map: QPixmap = ImageUtil.load_image_map("icon.png")
     if image_map is not None:
         UiObjects.window.setWindowIcon(QIcon(image_map))
 
