@@ -74,32 +74,42 @@ class CenteredWidget(QtWidgets.QWidget):
 class CenteredFocusWidget(QtWidgets.QWidget):
     def __init__(self, center_widget: QWidget, center_widget_width_percent: int = None, center_widget_height_percent: int = None, parent: QWidget = None):
         super().__init__(parent)
+        # Set center widget proportions
         self.center_widget_width_percent = center_widget_width_percent
         self.center_widget_height_percent = center_widget_height_percent
 
+        # Set center widget
         self.center_widget: QWidget = center_widget
         self.resize_center_widget()
 
+        # Create a container to maintain horizontal center
         self.centered_widget_container_h = QWidget()
         self.centered_widget_container_h.setLayout(QHBoxLayout())
         self.centered_widget_container_h.layout().addWidget(self.center_widget)
         self.centered_widget_container_h.layout().setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.centered_widget_container_h.setStyleSheet("background-color: transparent;")
 
+        # Create a container to maintain vertical center
         self.centered_widget_container_v = QWidget()
         self.centered_widget_container_v.setLayout(QVBoxLayout())
         self.centered_widget_container_v.layout().addWidget(self.centered_widget_container_h)
         self.centered_widget_container_v.layout().setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.centered_widget_container_v.setStyleSheet("background-color: transparent;")
 
+        # Set main width and height to cover screen
         self.setFixedWidth(UiObjects.current_screen.ui.width())
         self.setFixedHeight(UiObjects.current_screen.ui.height())
+
+        # Add centered widget to the main container
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.centered_widget_container_v)
+
+        # Set background color to be semi-transparent
         self.setAutoFillBackground(True)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.setStyleSheet("QWidget {background-color: rgba(64,64,64,.64);}")
 
+        # Capture events for resizing later
         UiObjects.current_screen.ui.installEventFilter(self)
 
     def eventFilter(self, source: QWidget, event: QEvent):
@@ -111,9 +121,11 @@ class CenteredFocusWidget(QtWidgets.QWidget):
         return super().eventFilter(source, event)
 
     def resize_center_widget(self):
+        # If there are no set proportions, just make sure the centered widget is taking up all it should
         if self.center_widget_width_percent is None or self.center_widget_height_percent is None:
             self.center_widget.adjustSize()
         else:
+            # Otherwise, set the proportions relative to the main window
             self.center_widget.setMaximumWidth(UiObjects.current_screen.ui.width() * (self.center_widget_width_percent/100))
             self.center_widget.setMaximumHeight(UiObjects.current_screen.ui.height() * (self.center_widget_height_percent/100))
 
@@ -131,6 +143,7 @@ class TransparentGraphicsView(QtWidgets.QGraphicsView):
         self.fitInView(self.sceneRect(), aspectRadioMode=Qt.AspectRatioMode.KeepAspectRatio)
         super().resizeEvent(event)
 
+# Helper class for HighlightOnHoverGraphicsItem
 class HighlightOnHoverGraphicsItemSignals(QObject):
     paint_finished = Signal()
 
@@ -186,13 +199,18 @@ class HighlightOnHoverGraphicsItem(QGraphicsPixmapItem):
 class BackButton(QtWidgets.QWidget):
     def __init__(self, parent: QWidget, on_click: Callable[[], None], width_percentage: int = 7, height_percentage: int = 10):
         super().__init__(parent)
+        # Set width and height
         self.width_percentage: int = width_percentage
         self.height_percentage: int = height_percentage
-        self.original_pixmap = ImageUtil.load_image_map("map_locations/back.png")
-        self.back_image: QGraphicsPixmapItem = QGraphicsPixmapItem(self.original_pixmap)
-        self.back_image_highlighted: QGraphicsPixmapItem = QGraphicsPixmapItem(self.original_pixmap)
-        self.back_image_highlighted.setShapeMode(QGraphicsPixmapItem.MaskShape)
 
+        # Load 'back' image
+        self.original_pixmap: QPixmap = ImageUtil.load_image_map("map_locations/back.png")
+        self.back_image: QGraphicsPixmapItem = QGraphicsPixmapItem(self.original_pixmap)
+
+        # Allow 'back' image to be highlighted on hover
+        self.back_image_highlighted: QPixmap = self.original_pixmap
+
+        # Set pen/painter to highlight back button image
         highlight_pen = QPen(
                 QColor(UiObjects.highlight_color), max(16, UiObjects.window.width() // 40/2),
                 Qt.PenStyle.SolidLine,
@@ -200,52 +218,55 @@ class BackButton(QtWidgets.QWidget):
                 Qt.PenJoinStyle.RoundJoin
             )
         highlight_pen.setJoinStyle(Qt.RoundJoin)
-        painter = QPainter(self.original_pixmap)
+        painter = QPainter(self.back_image_highlighted)
         painter.setPen(highlight_pen)
         painter.setBrush(Qt.NoBrush)
         outline_path = self.back_image.shape()
         painter.drawPath(outline_path)
         painter.end()
 
-        # self.setToolTip("Back")
-        # self.setIcon(QIcon(self.back_image))
-        # self.setIconSize(self.get_size())
-        # self.adjustSize()
-        # self.setStyleSheet("background-color: transparent;"
-        #                     "border: 1px solid transparent;")
-        # self.move(5, 5)
-        # self.show()
+        # Set up back button with image
         self.button = QtWidgets.QPushButton()
         self.button.setIcon(QIcon(self.back_image.pixmap()))
         self.button.setIconSize(self.get_size())
+
+        # Detect mouse for highlighting on hover and on click
         self.button.setMouseTracking(True)
         self.button.installEventFilter(self)
         self.button.clicked.connect(on_click)
         UiObjects.window.installEventFilter(self)
+
+        # Set up on hover label and default it to be hidden
         self.hover_label = OutlinedLabel("Back", 30, UiObjects.highlight_color)
         self.hover_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         size_policy = self.hover_label.sizePolicy()
-        size_policy.setRetainSizeWhenHidden(True)
+        size_policy.setRetainSizeWhenHidden(True) # Don't adjust layout when hidden
         self.hover_label.setSizePolicy(size_policy)
         self.hover_label.hide()
+
+        # Setup layout with button and hover label below it
         layout = QVBoxLayout()
         self.setLayout(layout)
         layout.addWidget(self.button)
         layout.addWidget(self.hover_label)
+
+        # Setup styles and move to top-left of the screen with a little space from the corner
         self.adjustSize()
         self.setStyleSheet("background-color: transparent;"
                             "border: 1px solid transparent;")
         self.move(5, 5)
 
     def eventFilter(self, source: QWidget, event: QEvent):
+        # Make sure button is sized properly when the screen resizes
         if event.type() == QEvent.Type.Resize:
             self.button.setIconSize(self.get_size())
             self.button.adjustSize()
             self.adjustSize()
 
+        # Show highlighted image and label when hovering over button; otherwise, show regular image and hide the label
         if source == self.button:
             if event.type() == QEvent.Type.Enter:
-                self.set_button_icon(self.original_pixmap)
+                self.set_button_icon(self.back_image_highlighted)
                 self.hover_label.show()
             elif event.type() == QEvent.Type.Leave:
                 self.set_button_icon(self.back_image.pixmap())
@@ -271,6 +292,8 @@ class BackButton(QtWidgets.QWidget):
 class Button(QtWidgets.QPushButton):
     def __init__(self, text:str = None, font_size: int = 20, parent=None):
         super().__init__(text, parent)
+
+        # Set up button styles
         darker_light_color = QColor(UiObjects.light_text_color).darker(120).name()
         self.setStyleSheet("""
                     QPushButton {
@@ -418,8 +441,10 @@ class IntegerInput(QtWidgets.QLineEdit):
 class TooltipWidget(QtWidgets.QWidget):
     def __init__(self, parent: QWidget, tooltip_widget: QWidget = None, name: str = None):
         super().__init__(parent)
+        # Make sure we can receive mouse moving updates to detect when to show tooltip
         self.setMouseTracking(True)
 
+        # Make sure tooltip widget is initialized
         self.tooltip_widget = tooltip_widget
         if not tooltip_widget:
             self.tooltip_widget = Label(name if name else "")
@@ -431,6 +456,7 @@ class TooltipWidget(QtWidgets.QWidget):
         self.screen_buffer: int = 3
         self.mouse_entered: bool = False
 
+        # Add a box shadow to tooltip widget
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(15)
         shadow.setColor(QColor(0, 0, 0, 150))
@@ -438,12 +464,14 @@ class TooltipWidget(QtWidgets.QWidget):
         shadow.setYOffset(5)
         self.tooltip_widget.setGraphicsEffect(shadow)
 
+        # Initialize variables for where/ when to show tooltip widget
         self.current_pos: QPoint = QPoint(0,0)
         self.local_pos: QPoint = QPoint(0,0)
         self.inactivity_timer: QTimer = QTimer(self)
         self.inactivity_timer.setSingleShot(True)
         self.inactivity_timer.timeout.connect(self.position_tooltip_widget)
 
+        # Set styles of tooltip widget
         self.tooltip_widget.setStyleSheet(self.tooltip_widget.styleSheet() +
                                             "border: 2px solid" + UiObjects.dark_text_color + ";"
                                             "border-radius: 13%;"
@@ -483,10 +511,15 @@ class TooltipWidget(QtWidgets.QWidget):
         super().wheelEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent):
+        # Filter out any sub widget movement events that would throw off tooltip widget position
         if self.tooltip_widget.isVisible() and not self.is_stepped_mouse_move_event(event.pos()):
             super().mouseMoveEvent(event)
             return
+
+        # Update new mouse location
         self.update_local_pos(event.pos())
+
+        # If position should change (allow for buffer) and it's not shown, update the current position and reset the timer
         should_change: bool = self.current_pos_should_change()
         if not self.tooltip_widget.isVisible() or should_change:
             self.update_current_cursor_pos()
@@ -499,9 +532,12 @@ class TooltipWidget(QtWidgets.QWidget):
         self.tooltip_widget.hide()
 
     def position_tooltip_widget(self):
+        # If the widget is not being hovered over, hide the tooltip widget
         if not self.underMouse():
             self.tooltip_widget.hide()
             return
+
+        # Update new height and width of tooltip widget
         width: int = UiObjects.current_screen.ui.width()
         height: int = UiObjects.current_screen.ui.height()
         self.tooltip_widget.setMaximumWidth((width/2) - self.screen_buffer)
@@ -519,6 +555,7 @@ class TooltipWidget(QtWidgets.QWidget):
         if self.current_pos.y() > height/2:
             y = -self.tooltip_widget.height()
 
+        # set new offset positon
         new_tooltip_position: QPoint = self.current_pos + QPoint(x, y)
 
         # Make sure the tool tip is fully on screen when shown
@@ -541,10 +578,12 @@ class TooltipWidget(QtWidgets.QWidget):
         self.local_pos = UiObjects.current_screen.ui.mapFromGlobal(global_pos)
 
     def is_stepped_mouse_move_event(self, new_pos: QPoint):
+        # Ignore if the mouse just entered
         if self.mouse_entered:
             self.mouse_entered = False
             return True
 
+        # Return true if new position is only a 1 pixel difference from old location
         global_pos: QPoint = self.mapToGlobal(new_pos)
         local_pos = UiObjects.current_screen.ui.mapFromGlobal(global_pos)
         return abs(abs(self.local_pos.x()) - abs(local_pos.x())) <= 1 and abs(abs(self.local_pos.y()) - abs(local_pos.y())) <= 1
@@ -562,9 +601,11 @@ class ItemTableCell(TooltipWidget):
         else:
             super().__init__(parent, None, name)
 
+        # Assign action widget (widget that will show when cell is clicked)
         if action_widget:
             self.action_widget = action_widget
         else:
+            # Create default action widget
             label: Label = Label(name if name else "")
             okay: Button = Button("Okay")
             self.action_widget = QWidget()
@@ -572,12 +613,16 @@ class ItemTableCell(TooltipWidget):
             self.action_widget.layout().addWidget(label)
             self.action_widget.layout().addWidget(okay)
 
+        # Center action widget and add styles to it
         self.action_widget_container = CenteredFocusWidget(action_widget, 50, 75)
         self.action_widget.setStyleSheet("border: 2px solid" + UiObjects.dark_text_color + ";"
                                             "border-radius: 13%;"
                                             "background-color: " + UiObjects.light_text_color + ";")
+
+        # Setup action widget buttons
         self.action_widget_button_layout = QHBoxLayout()
         if action_widget_button_text:
+            # If there is an action widget button, set it up with click events that will run a customizable method then hide the action widget
             self.action_widget_button: Button = Button(action_widget_button_text)
             self.action_widget_button.clicked.connect(lambda: (
                 self.on_action_widget_button_triggered(),
@@ -585,22 +630,32 @@ class ItemTableCell(TooltipWidget):
                 self.ui_loop.exit(True)
             ))
             self.action_widget_button_layout.addWidget(self.action_widget_button)
+
+            # Set up button to cancel out of the action button
             self.action_widget_back_button: Button = Button("Back")
         else:
+            # If there is no action button, just create an okay button that acts as the back button
             self.action_widget_back_button: Button = Button("Okay")
 
+        # Back button should just hide the action widget
         self.action_widget_back_button.clicked.connect(lambda: (
             self.action_widget_container.hide(),
             self.ui_loop.exit(True)
         ))
+
+        # Add back button to button layout and the button layout to the action widget
         self.action_widget_button_layout.addWidget(self.action_widget_back_button)
         self.action_widget.layout().addLayout(self.action_widget_button_layout)
+
+        # Set up loop for showing action widget
         self.ui_loop: QtCore.QEventLoop = QtCore.QEventLoop()
 
+        # set up image for item table cell
         self.image: TransparentGraphicsView = TransparentGraphicsView()
         self.image.setScene(graphics_scene)
         self.image.mouseMoveEvent = self.mouseMoveEvent
 
+        # Set up variables for item table cell (Item image, name label, action button, in that order top to bottom)
         self.pixmap_unscaled: QGraphicsPixmapItem = graphics_scene.items()[0]
         self.name: str = name
         self.name_label: Label = Label(name, name_label_font_size)
@@ -608,23 +663,27 @@ class ItemTableCell(TooltipWidget):
         self.name_label.setMouseTracking(True)
         self.action: Button = Button(button_text, 10)
         self.action.setMouseTracking(True)
-        self.price_label: Label = None
 
+        # Add widgets to layout
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.image)
         self.layout.addWidget(self.name_label)
         self.layout.addWidget(self.action)
 
+        # Set up styles for table cell
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet("QWidget {border: 2px solid" + UiObjects.dark_text_color + ";"
                              "border-radius: 13%;}")
         self.image.setStyleSheet("border: 2px solid transparent;")
         self.name_label.setStyleSheet("border: 2px solid transparent; color: " + UiObjects.dark_text_color + ";")
 
+        # Boolean for adding extra padding below table cell for more information about the table cell
         self.extra_info: bool = False
 
+        # Receive events from app
         UiObjects.current_screen.ui.installEventFilter(self)
 
+    # Signify that the user can click on the table cell, but changing the cursor image
     def enterEvent(self, event: QGraphicsSceneHoverEvent):
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         super().enterEvent(event)
@@ -643,6 +702,7 @@ class ItemTableCell(TooltipWidget):
         self.action_widget_container.raise_()
         self.ui_loop.exec()
 
+    # Custom event to run when action widget's action button is pressed
     def on_action_widget_button_triggered(self):
         pass
 
@@ -655,29 +715,40 @@ class WeaponItemTableCellType(Enum):
 
 class WeaponItemTableCell(ItemTableCell):
     def __init__(self, weapon: Weapon, player: Player, weapon_cell_type: WeaponItemTableCellType = WeaponItemTableCellType.VIEW, on_actioned_callback: Callable = None, name_label_font_size: int = 12, parent=None):
+        # Variable for testing if dialog returns true or not
         self.message_result: bool = False
-        self.on_actioned_callback: Callable[[WeaponItemTableCell, bool], None] = on_actioned_callback
+
+        # Set up when function called when action button is pressed
+        self.on_actioned_callback: Callable[[WeaponItemTableCell], None] = on_actioned_callback
+
+        # Set up price of weapon
         price: int = None
         self.price_color: str = ""
         if weapon_cell_type == WeaponItemTableCellType.BUY:
             price = weapon.price
             self.price_color = "color: green" if player.money >= price else "color: red;"
         elif weapon_cell_type == WeaponItemTableCellType.SELL:
-            price = int(weapon.price / 2)
+            price = int(weapon.price / 2) # Weapons are sold at half price
 
+        # Set up class variables
         self.weapon = weapon
         self.weapon_price = price
         self.player = player
         self.weapon_cell_type = weapon_cell_type
 
+        # Get weapon image
         graphics_scene: QGraphicsScene = ImageUtil.load_image("weapons/" + weapon.weapon_image_name + ".png")
 
+        # Set up tooltip and action widget
         tooltip_widget = self.create_main_widget(weapon, name_label_font_size, graphics_scene, False)
         actioned_widget = self.create_main_widget(weapon, name_label_font_size, graphics_scene)
 
         super().__init__(weapon.weapon_name, graphics_scene, tooltip_widget, actioned_widget, str(weapon_cell_type.value), name_label_font_size, str(weapon_cell_type.value), price, parent)
+
+        # Set up on action button pressed (must be after super class is initialized, otherwise it will be overwritten)
         self.action.clicked.connect(self.on_action_widget_button_triggered)
 
+        # If we should show a price (for buying and selling weapons), set extra_info to true to provide buffer for it, then set up and add price label
         if price:
             self.extra_info = True
             self.price_label: Label = Label(str(price) + " coins", int(name_label_font_size * .7))
@@ -697,6 +768,7 @@ class WeaponItemTableCell(ItemTableCell):
         return None
 
     def on_action_widget_button_triggered(self):
+        # Override method to handle presses for each type of weapon table cell type
         result: bool = False
         match self.weapon_cell_type:
             case WeaponItemTableCellType.BUY:
@@ -704,29 +776,34 @@ class WeaponItemTableCell(ItemTableCell):
             case WeaponItemTableCellType.SELL:
                 result = self.do_weapon_sell()
 
-        self.on_actioned_callback(self, result)
+        # If action went through (player said they were sure), run self.on_actioned_callback, passing this class
+        if result:
+            self.on_actioned_callback(self)
 
     def do_weapon_sell(self) -> bool:
         if self.are_you_sure("Are you sure you want to sell your " + self.weapon.weapon_name + "?"):
             self.player.money = self.player.money + self.weapon_price
             return True
-            # Player weapon objects will be handled later in the callback
+            # Player weapon objects will be handled later in the self.on_actioned_callback
 
         return False
 
     def do_weapon_buy(self) -> bool:
+        # Handle player not having enough money
         if self.weapon_price > self.player.money:
             self.show_error_message("Sorry, you don't have enough coins to buy the " + self.weapon.weapon_name + ".")
             return False
 
+        # Handle player not having enough strength
         if self.weapon.strength > self.player.strength:
             self.show_error_message("Sorry, you don't have enough strength to wield the " + self.weapon.weapon_name + ", so you cannot buy it.")
             return False
 
+        # Make sure player is sure they want to buy the weapon
         if self.are_you_sure("Are you sure you want to buy the " + self.weapon.weapon_name + "?"):
             self.player.money = self.player.money - self.weapon_price
             return True
-            # Player weapon objects will be handled later in the callback
+            # Player weapon objects will be handled later in the self.on_actioned_callback
 
         return False
 
@@ -737,10 +814,15 @@ class WeaponItemTableCell(ItemTableCell):
         return self.create_user_message(message, False)
 
     def create_user_message(self, message: str, is_sure: bool = True) -> bool:
+        # Create a message label
         label = Label(message, 35)
         label.setStyleSheet("border: 2px solid transparent;" +
                             "color: " + UiObjects.dark_text_color + ";")
+
+        # By default, create an okay button
         button = Button("Okay")
+
+        # Set up message widget with label and button layout with button in it
         message_widget = QWidget()
         message_widget.setLayout(QVBoxLayout())
         message_widget.layout().addWidget(label)
@@ -751,42 +833,61 @@ class WeaponItemTableCell(ItemTableCell):
         message_widget.setStyleSheet("border: 2px solid " + UiObjects.dark_text_color + ";"
                                             "border-radius: 13%;"
                                             "background-color: " + UiObjects.light_text_color + ";")
+
+        # Center message dialog widget
         container = CenteredFocusWidget(message_widget, None, None, UiObjects.current_screen.ui)
+
+        # Reinitialize dialog message result (only really needed for is_sure)
         self.message_result = False
+
+        # Create loop for showing dialog message
         ui_loop = QEventLoop()
+
+        # Add on click for main button
         button.clicked.connect(lambda: (
             self.set_message_result(True),
             container.hide(),
             ui_loop.exit(True)
         ))
 
+        # If dialog type is is_sure
         if is_sure:
+            # Change main button to 'Yes'
             button.setText("Yes")
+
+            # Add second button 'No' that will result in a false result
             button_two = Button("No")
             button_two.clicked.connect(lambda: (
                 self.set_message_result(False),
                 container.hide(),
                 ui_loop.exit(True)
             ))
+
+            # Add second button to dialog message widget
             message_widget_button_layout.addWidget(button_two)
 
+        # Show dialog message, and start loop to wait for result
         container.show()
         ui_loop.exec()
 
+        # Return dialog message result
         return self.message_result
 
     def set_message_result(self, result):
         self.message_result = result
 
     def create_main_widget(self, weapon: Weapon, name_label_font_size: int, graphics_scene: QGraphicsScene, is_action_widget: bool = True):
+        # Initialize widget
         widget = QWidget()
         widget.setLayout(QVBoxLayout())
 
+        # Create weapon image widget
         image: TransparentGraphicsView = TransparentGraphicsView()
         image.setScene(graphics_scene)
         image.setFixedHeight(UiObjects.current_screen.ui.height()/5)
         widget.layout().addWidget(image)
 
+        # Create name label and add to widget
         label_styles: str = "border: 2px solid transparent;"
         name_label: Label = Label(weapon.weapon_name, name_label_font_size)
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -796,6 +897,7 @@ class WeaponItemTableCell(ItemTableCell):
                                     "border-radius: 0")
         widget.layout().addWidget(name_label)
 
+        # Create damage label and add to widget
         damage_label: Label = Label("Damage:", name_label_font_size-4)
         damage_label.setStyleSheet(label_styles + "color: " + UiObjects.dark_text_color + ";")
         damage_amount_label: Label = Label(str(weapon.damage), name_label_font_size-4)
@@ -806,6 +908,7 @@ class WeaponItemTableCell(ItemTableCell):
         damage_container.addWidget(damage_amount_label)
         widget.layout().addLayout(damage_container)
 
+        # Create attack rate label and add to widget
         attack_rate_label: Label = Label("Attack Rate:", name_label_font_size-4)
         attack_rate_label.setStyleSheet(label_styles + "color: " + UiObjects.dark_text_color + ";")
         attack_rate_amount_label: Label = Label(str(weapon.attack_rate), name_label_font_size-4)
@@ -816,6 +919,7 @@ class WeaponItemTableCell(ItemTableCell):
         attack_rate_container.addWidget(attack_rate_amount_label)
         widget.layout().addLayout(attack_rate_container)
 
+        # Create strength label and add to widget
         strength_label: Label = Label("Strength Required:", name_label_font_size-4)
         strength_label.setStyleSheet(label_styles + "color: " + UiObjects.dark_text_color + ";")
         strength_amount_label: Label = Label(str(weapon.strength), name_label_font_size-4)
@@ -827,6 +931,7 @@ class WeaponItemTableCell(ItemTableCell):
         widget.layout().addLayout(strength_container)
 
         if self.weapon_price and is_action_widget:
+            # If this is a buy or sell weapon table cell and we are creating the action widget, add a 'current money amount' +/- 'weapon price' = 'new money amount' label
             operand: str = "-" if self.weapon_cell_type == WeaponItemTableCellType.BUY else "+"
             new_total: int = (self.player.money - self.weapon_price) if self.weapon_cell_type == WeaponItemTableCellType.BUY else (self.player.money + self.weapon_price)
             new_price_label: Label = Label("Current: " + str(self.player.money) + " " + operand + " Price: " + str(self.weapon_price) + " = New Total: " + str(new_total) + " coins", name_label_font_size-4)
@@ -842,51 +947,47 @@ class WeaponItemTableCell(ItemTableCell):
 class ItemTableView(QtWidgets.QScrollArea):
     def __init__(self, row_height_divisor: int = 3, column_count: int = 3, parent=None):
         super().__init__(parent)
+        # Initialize item variables
         self.row_height_devisor = row_height_divisor
         self.column_count: int = column_count
-        self.row: int = 0
-        self.col: int = 0
         self.items: list[ItemTableCell] = []
 
+        # Initialize table
         self.table_container = QWidget()
         self.table_container.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
         self.table_container.setStyleSheet("border: 2px solid transparent; background-color: transparent;")
         self.table_layout = QGridLayout(self.table_container)
         self.table_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        # Add table to self (to scroll area with no horizontal scroll bar)
         self.setAlignment(Qt.AlignCenter)
         self.setWidget(self.table_container)
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
+        # Set up styles
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet("QWidget {background-color: " + UiObjects.light_text_color + ";"
                              "border: 2px solid" + UiObjects.dark_text_color + ";"
                              "border-radius: 13%;}")
 
+        # Accept events
         UiObjects.current_screen.ui.installEventFilter(self)
 
     def add_item(self, item: ItemTableCell):
         # Set image width
         width: int = self.rect().width()
         height: int = self.rect().height()
-        # item.image.setFixedHeight(height/self.row_height_devisor)
+
+        # Set up item sizes
         item.image.setMinimumHeight(height/self.row_height_devisor * 3/4)
-        item.action.setMinimumHeight(39)
+        item.action.setMinimumHeight(39) # Button text sometimes got cut off
         item.setMaximumWidth(width/self.column_count)
-        item.setMinimumWidth(QFontMetrics(item.action.font()).horizontalAdvance(item.action.text())+40)
-        # item.setMaximumHeight(height/self.row_height_devisor + height/self.row_height_devisor/20)
+        item.setMinimumWidth(QFontMetrics(item.action.font()).horizontalAdvance(item.action.text())+40) # Width based on action text size
 
         # Add item
         self.items.append(item)
-        self.table_layout.addWidget(item, self.row, self.col)
-
-        # Update position to next open space
-        # If there's no more open columns, go to next row
-        self.col+= 1
-        if self.col == self.column_count:
-            self.col = 0
-            self.row+= 1
+        self.table_layout.addWidget(item, self.table_layout.count() // self.column_count, self.table_layout.count() % self.column_count)
 
     def remove_item(self, item: ItemTableCell):
         # Remove the widget from the layout and delete it
@@ -907,14 +1008,8 @@ class ItemTableView(QtWidgets.QScrollArea):
             del item  # delete the layout item
 
         # Re-add all existing widgets from the updated list
-        for i, widget in enumerate(self.items):
-            self.table_layout.addWidget(widget, i // self.column_count, i % self.column_count)
-
-        if self.col == 0:
-            self.col = self.column_count
-            self.row-= 1
-        else:
-            self.col -= 1
+        for i, item in enumerate(self.items):
+            self.table_layout.addWidget(item, i // self.column_count, i % self.column_count)
 
     def eventFilter(self, source: QWidget, event: QEvent):
         if event.type() == QEvent.Type.Resize:
@@ -922,20 +1017,16 @@ class ItemTableView(QtWidgets.QScrollArea):
         return super().eventFilter(source, event)
 
     def resize_item_image(self):
+        # Get current size
         width: int = self.rect().width()
         height: int = self.height()
+
         for item in self.items:
-            # scaled_pixmap = item.pixmap_unscaled.scaled(width/self.column_count, width/self.column_count,
-            #                                        Qt.AspectRatioMode.KeepAspectRatio,
-            #                                        Qt.TransformationMode.SmoothTransformation)
-            # item.image.scene().items()[0].setPixmap(scaled_pixmap)
-            # item.image.setFixedWidth(width/self.column_count)
             item.image.setFixedHeight(height/self.row_height_devisor * 3/4)
             item.setMaximumWidth(width/self.column_count-15)
-            extra_divisor: float = 1.3 if item.extra_info else 1.7
-            extra_padding: int = height/self.row_height_devisor*5/8 if self.column_count >= len(self.items) else height/self.row_height_devisor/extra_divisor
+            extra_divisor: float = 1.3 if item.extra_info else 1.7 # Extra padding if more info on the bottom
+            extra_padding: int = height/self.row_height_devisor*5/8 if self.column_count >= len(self.items) and width >= 462 else height/self.row_height_devisor/extra_divisor # Extra padding for one row tables, add extra when width is smaller
             item.setMaximumHeight(height/self.row_height_devisor + extra_padding)
-            # item.image.fitInView(item.image.sceneRect(), aspectRadioMode=Qt.AspectRatioMode.KeepAspectRatio)
 
 
 class Screen(QWidget):
