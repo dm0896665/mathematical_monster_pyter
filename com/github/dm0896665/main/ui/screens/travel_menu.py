@@ -29,6 +29,7 @@ class TravelMenu(MapScreen):
 
         if self.is_first_time:
             OkayPrompt("Click a location on the map to go there.")
+            self.is_first_time = False
 
     def on_bank_location_clicked(self, location: MapLocation):
         UiUtil.change_screen(Bank())
