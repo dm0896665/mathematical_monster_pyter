@@ -2,7 +2,6 @@ from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
 from com.github.dm0896665.main.core.player.player import Player
-from com.github.dm0896665.main.core.weapon.weapon import Weapon
 from com.github.dm0896665.main.core.weapon.weapon_util import WeaponUtil
 from com.github.dm0896665.main.util.player_util import PlayerUtil
 from com.github.dm0896665.main.util.ui_objects import Screen, ItemTableView, OutlinedLabel, \
@@ -19,16 +18,6 @@ class Blacksmith(Screen):
         self.has_back_button: bool = True
 
     def on_screen_did_show(self):
-        # for_sale: ItemTableView = ItemTableView(5)
-        # for weapon in WeaponUtil.get_all_weapons():
-        #     cell: ItemTableCell = ItemTableCell(weapon.weapon_name, ImageUtil.load_image("weapons/" + weapon.weapon_image_name + ".png"), 80)
-        #     for_sale.add_item(cell)
-        #
-        # inventory: ItemTableView = ItemTableView(5)
-        # for weapon in WeaponUtil.get_owned_weapons():
-        #     cell: ItemTableCell = ItemTableCell(weapon.weapon_name,
-        #                                         ImageUtil.load_image("weapons/" + weapon.weapon_image_name + ".png"), 90)
-        #     inventory.add_item(cell)
         self.player: Player = PlayerUtil.current_player
 
         self.for_sale: ItemTableView = ItemTableView()
