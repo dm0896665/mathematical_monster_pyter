@@ -2,17 +2,17 @@ import math
 import re
 import sys
 from enum import Enum
-from typing import Callable
+from typing import Callable, Any
 
 from PySide6 import QtWidgets, QtCore
 from PySide6.QtCore import QEvent, QPoint, Qt, QSignalBlocker, QObject, QPointF, QSize, QPropertyAnimation, QEventLoop, \
-    QTimer, Signal
+    QTimer, Signal, QEasingCurve
 from PySide6.QtGui import QPalette, QResizeEvent, QPixmap, QColor, QPen, QFont, QTextCursor, QTextCharFormat, QBrush, \
-    QRadialGradient, QPainter, QCursor, QFontMetrics, QPainterPath, QIcon, QMouseEvent, QWheelEvent
+    QRadialGradient, QPainter, QCursor, QFontMetrics, QPainterPath, QIcon, QMouseEvent, QWheelEvent, QEnterEvent
 
 from PySide6.QtWidgets import QApplication, QGridLayout, QWidget, QMainWindow, QGraphicsPixmapItem, \
     QGraphicsScene, QGraphicsView, QGraphicsSceneHoverEvent, QGraphicsTextItem, QGraphicsRectItem, QGraphicsItem, \
-    QGraphicsOpacityEffect, QVBoxLayout, QGraphicsSceneMoveEvent, QGraphicsDropShadowEffect, QLayout, QHBoxLayout
+    QGraphicsOpacityEffect, QVBoxLayout, QGraphicsDropShadowEffect, QHBoxLayout, QFrame
 
 from com.github.dm0896665.main.core.player.player import Player
 from com.github.dm0896665.main.core.weapon.weapon import Weapon
@@ -140,8 +140,8 @@ class TransparentGraphicsView(QtWidgets.QGraphicsView):
         self.setMouseTracking(True)
 
     def resizeEvent(self, event):
-        self.fitInView(self.sceneRect(), aspectRadioMode=Qt.AspectRatioMode.KeepAspectRatio)
         super().resizeEvent(event)
+        self.fitInView(self.sceneRect(), aspectRadioMode=Qt.AspectRatioMode.KeepAspectRatio)
 
 # Helper class for HighlightOnHoverGraphicsItem
 class HighlightOnHoverGraphicsItemSignals(QObject):
@@ -324,9 +324,9 @@ class Button(QtWidgets.QPushButton):
         self.setFont(QFont(UiObjects.font_name, font_size))
 
     def resizeEvent(self, event):
+        super().resizeEvent(event)
         font_size = max(12, UiObjects.window.width() // self.window_size_divisor)
         self.setFont(QFont(UiObjects.font_name, font_size))
-        super().resizeEvent(event)
 
 class Label(QtWidgets.QLabel):
     def __init__(self, text:str = None, font_size: int = 20, parent=None):
@@ -339,10 +339,17 @@ class Label(QtWidgets.QLabel):
         self.setStyleSheet("color: " + UiObjects.dark_text_color + "; background-color: transparent;")
         self.setWordWrap(True)
 
-    def resizeEvent(self, event):
+        UiObjects.current_screen.ui.installEventFilter(self)
+
+    def resize_label(self):
         font_size = max(12, UiObjects.window.width() // self.window_size_divisor)
         self.setFont(QFont(UiObjects.font_name, font_size))
-        super().resizeEvent(event)
+
+    def eventFilter(self, source: QWidget, event: QEvent):
+        # Make sure widget is sized properly when the screen resizes
+        if event.type() == QEvent.Type.Resize:
+            self.resize_label()
+        return super().eventFilter(source, event)
 
 
 class OutlinedLabel(Label):
@@ -434,9 +441,369 @@ class IntegerInput(QtWidgets.QLineEdit):
         self.setStyleSheet("color: " + UiObjects.dark_text_color + "; background-color: " + UiObjects.light_text_color + ";" + "border: 2px solid " + UiObjects.dark_text_color + ";")
 
     def resizeEvent(self, event):
+        super().resizeEvent(event)
         font_size = max(16, UiObjects.window.width() // 60)
         self.setFont(QFont(UiObjects.font_name, font_size))
-        super().resizeEvent(event)
+
+class PlayerStatusWidget(QtWidgets.QWidget):
+    def __init__(self, player: Player, parent: QWidget):
+        super().__init__(parent)
+        # Set up layout
+        self.setLayout(QVBoxLayout())
+
+        # Set up player variables
+        self.player = player
+        self.player.property_change_listener.connect(self.player_property_change)
+
+        # Set up expanding and collapsing animation
+        self.size_animation: QPropertyAnimation = QPropertyAnimation(self, b"size")
+        self.size_animation.setDuration(200)
+        self.size_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.final_size_animation: QPropertyAnimation = QPropertyAnimation(self, b"size")
+        self.final_size_animation.setDuration(self.size_animation.duration())
+        self.final_size_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.move_animation: QPropertyAnimation = QPropertyAnimation(self, b"pos")
+        self.move_animation.setDuration(self.size_animation.duration())
+        self.move_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.is_expanding: bool = False
+        self.is_collapsing: bool = False
+        self.expanded_size: QSize = self.size() # Will determine later
+        self.collapsed_size: QSize = self.size()
+
+        # Set up top (regular size) widget
+        self.player_container = QWidget()
+        self.player_container.setLayout(QHBoxLayout())
+        self.player_container.setMouseTracking(True)
+
+        # Set up name label
+        self.name_label: Label = Label(self.player.name, 16)
+        self.name_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.player_container.layout().addWidget(self.name_label)
+
+        # Set up name/level separator
+        self.name_separator = QFrame()
+        self.name_separator.setFrameShape(QFrame.VLine)  # Set the frame shape to VLine
+        self.name_separator.setFrameShadow(QFrame.Sunken)  # Add a 3D effect
+        self.name_separator.setLineWidth(1)
+        self.player_container.layout().addWidget(self.name_separator)
+
+        # Set up level label
+        self.level_label: Label = Label("Level: " + str(self.player.level), 10)
+        self.level_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.player_container.layout().addWidget(self.level_label)
+
+        # Add top (regular size) widget to layout
+        self.layout().addWidget(self.player_container)
+
+        # Set up (expanded size bott) widget
+        self.status_container = QWidget()
+        self.status_container.setLayout(QHBoxLayout())
+
+        # Set up weapon section
+        self.weapon_status_container = QVBoxLayout()
+        self.weapon_image: TransparentGraphicsView = TransparentGraphicsView()
+        self.weapon_status_container.addWidget(self.weapon_image)
+        self.weapon_name_label: Label = Label("", 10)
+        self.weapon_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.weapon_status_container.addWidget(self.weapon_name_label)
+        self.update_selected_weapon(self.player.selected_weapon)
+
+        # Set up separator for expanded section
+        self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.VLine)  # Set the frame shape to VLine
+        self.separator.setFrameShadow(QFrame.Sunken)  # Add a 3D effect
+        self.separator.setLineWidth(2)
+
+        # Set up main info section
+        self.stats_status_container = QVBoxLayout()
+        self.health_label: Label = Label("", 16)
+        self.health_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.update_health(self.player.health)
+        self.stats_status_container.addWidget(self.health_label)
+        self.strength_label: Label = Label("", 16)
+        self.strength_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.update_strength(self.player.strength)
+        self.stats_status_container.addWidget(self.strength_label)
+        self.coins_label: Label = Label("", 16)
+        self.coins_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.update_money(self.player.money)
+        self.stats_status_container.addWidget(self.coins_label)
+
+        # Add label, separator, and weapon section to (expanded size) bottom widget then add that to layout
+        self.status_container.layout().addLayout(self.stats_status_container)
+        self.status_container.layout().addWidget(self.separator)
+        self.status_container.layout().addLayout(self.weapon_status_container)
+        self.layout().addWidget(self.status_container)
+
+        # Initialize (expanded size) bottom widget as hidden
+        self.status_container.hide()
+
+        # Enable mouse events
+        self.setMouseTracking(True)
+
+        # Set up main widget styles
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setStyleSheet("border: 2px solid " + UiObjects.dark_text_color + ";"
+                                            "border-radius: 13%;"
+                                            "background-color: " + UiObjects.get_transparent_light_background_color(200) + ";")
+
+        # Set up info styles
+        item_styles: str = "border: 2px solid transparent; background-color: transparent;"
+        self.name_label.setStyleSheet(item_styles)
+        self.name_separator.setStyleSheet("background-color: " + UiObjects.dark_text_color + ";")
+        self.level_label.setStyleSheet(item_styles)
+        self.weapon_image.setStyleSheet(item_styles)
+        self.weapon_name_label.setStyleSheet(item_styles)
+        self.separator.setStyleSheet("background-color: " + UiObjects.dark_text_color + ";")
+        self.health_label.setStyleSheet(item_styles + " color: red;")
+        self.strength_label.setStyleSheet(item_styles + " color: blue;")
+        self.coins_label.setStyleSheet(item_styles + " color: " + UiObjects.dark_text_color + ";")
+
+        # Set up main container styles
+        self.player_container.setStyleSheet(item_styles)
+        self.status_container.setStyleSheet(item_styles)
+
+        # Enable event filter
+        UiObjects.current_screen.ui.installEventFilter(self)
+
+        # Make sure widget is sized properly
+        self.resize_widget()
+
+
+    def player_property_change(self, name: str, value: Any):
+        match name:
+            case Player.name.fget.__name__:
+                self.update_name(value)
+            case Player.level.fget.__name__:
+                self.update_level(value)
+            case Player.selected_weapon.fget.__name__:
+                self.update_selected_weapon(value)
+            case Player.health.fget.__name__:
+                self.update_health(value)
+            case Player.strength.fget.__name__:
+                self.update_strength(value)
+            case Player.money.fget.__name__:
+                self.update_money(value)
+
+    def update_name(self, value: str):
+        self.name_label.setText(value)
+        self.resize_widget()
+
+    def update_level(self, value: int):
+        self.level_label.setText("Level: " + str(value))
+        self.resize_widget()
+
+    def update_selected_weapon(self, weapon: Weapon):
+        self.weapon_image.setScene(
+            ImageUtil.load_image("weapons/" + weapon.weapon_image_name + ".png"))
+        self.weapon_name_label.setText(str(weapon.weapon_name))
+        self.resize_widget()
+
+    def update_health(self, value: int):
+        self.health_label.setText(str(value) + "hp")
+        self.resize_widget()
+
+    def update_strength(self, value: int):
+        self.strength_label.setText(str(value) + " strength")
+        self.resize_widget()
+
+    def update_money(self, value: int):
+        self.coins_label.setText(str(value) + " coins")
+        self.resize_widget()
+
+    def eventFilter(self, source: QWidget, event: QEvent):
+        # Make sure widget is sized properly when the screen resizes
+        if event.type() == QEvent.Type.Resize:
+            self.resize_widget()
+        return super().eventFilter(source, event)
+
+    def resize_widget(self):
+        # If we are expanding/collapsing the widget, cancel it and make sure it's collapsed
+        if self.is_collapsing or self.is_expanding:
+            self.collapse_widget()
+            self.is_collapsing = False
+            self.is_expanding = False
+
+        # Resize weapon image
+        self.update_weapon_image_size()
+        self.adjustSize()
+
+        # After labels are resized, make sure the widget is sized and positioned properly then update size variables
+        QTimer.singleShot(2, self.update_size_variables)
+
+    def update_size_variables(self):
+        self.adjustSize()
+        # If the widget is expanded set variables properly and revert to regular size
+        # as this method shouldn't be called when it's expanded, but it does happen from time to time
+        if self.status_container.isVisible():
+            # Get expanded Size
+            self.expanded_size = self.size()
+
+            # Collapse widget and get the collapsed size
+            self.collapse_widget()
+            self.collapsed_size = self.size()
+        else:
+            # If the widget is collapsed, set variables properly
+            self.collapsed_size = self.size()
+
+            # Get expanded widget size
+            self.expand_widget()
+            self.expanded_size = self.size()
+
+            # Collapse widget and make sure it's positioned properly
+            self.collapse_widget()
+            self.move(self.get_position_for_size(self.collapsed_size))
+
+        # Expanded width should never be smaller than the regular width
+        if self.expanded_size.width() < self.collapsed_size.width():
+            self.expanded_size.setWidth(self.collapsed_size.width())
+
+    def collapse_widget(self):
+        self.status_container.hide()
+        self.name_separator.show()
+        self.adjustSize()
+
+    def expand_widget(self):
+        self.status_container.show()
+        self.name_separator.hide()
+        self.adjustSize()
+
+    @staticmethod
+    def get_position_for_size(size: QSize):
+        return QPoint(UiObjects.current_screen.ui.width() - size.width() - 5, 5)
+
+    def update_weapon_image_size(self):
+        height = UiObjects.current_screen.ui.height()
+        self.weapon_image.setMaximumHeight(height / 10)
+
+    def enterEvent(self, event: QEnterEvent):
+        # Ignore if the widget is expanding/ retracting
+        if self.is_expanding or self.is_collapsing:
+            super().leaveEvent(event)
+            return
+
+        # Set to enlarging and hide the name separator
+        self.is_expanding = True
+        self.name_separator.hide()
+
+        # Enlarge widget
+        QTimer.singleShot(1, lambda: self.expand_collapse_widget())
+
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: QEnterEvent):
+        # Ignore if the widget is expanding/ retracting
+        if self.is_collapsing or self.is_expanding:
+            super().leaveEvent(event)
+            return
+
+        # Set to collapsing
+        self.is_collapsing = True
+
+        # Minimize widget
+        QTimer.singleShot(1, lambda: self.expand_collapse_widget())
+
+        super().leaveEvent(event)
+
+    def expand_collapse_widget(self):
+        self.adjustSize()
+
+        # Set up variables based on sizing method
+        initial_size = self.expanded_size if self.is_collapsing else self.collapsed_size
+        new_size = self.collapsed_size if self.is_collapsing else self.expanded_size
+        initial_pos = self.pos()
+
+        # Get transition size (expanded size width and regular size height)
+        temp_size: QSize = QSize(self.expanded_size.width(), self.collapsed_size.height())
+
+        # If transition size is already met
+        if self.is_expanding and temp_size.width() == self.collapsed_size.width():
+            self.finish_status_widget_size_adjustment(temp_size, new_size, None)
+            return
+
+        # Set up size animation
+        self.size_animation.setStartValue(initial_size)
+        self.size_animation.setEndValue(temp_size)
+        self.size_animation.finished.connect(lambda: self.finish_status_widget_size_adjustment(temp_size, new_size, initial_pos if self.is_collapsing else None))
+
+        if self.is_collapsing:
+            # When collapsing, hide the bottom widget part way through
+            QTimer.singleShot(self.size_animation.duration() * .2, self.status_container.hide)
+        else:
+            # When expanding, set up move animation to happen at the same time to give the illusion of expanding to the left
+            self.move_animation.setStartValue(initial_pos)
+            self.move_animation.setEndValue(self.get_position_for_size(new_size))
+            self.move_animation.start()
+
+        # Start size adjustment animation
+        self.size_animation.start()
+
+    def finish_status_widget_size_adjustment(self, temp_size, new_size, initial_pos: QPoint = None):
+        # Reset handler on size animation
+        self.size_animation.finished.disconnect()
+
+        # If expand/collapse was canceled, return
+        if not self.is_collapsing and not self.is_expanding:
+            return
+
+        # Set up final size animation
+        self.final_size_animation.setStartValue(temp_size)
+        self.final_size_animation.setEndValue(new_size)
+
+        if initial_pos:
+            # When collapsing, set up move animation to happen at the same time to give the illusion of collapsing to the right
+            self.move_animation.setStartValue(initial_pos)
+            self.move_animation.setEndValue(self.get_position_for_size(new_size))
+            self.move_animation.start()
+
+            # Add name separator back in part way through
+            QTimer.singleShot(self.move_animation.duration() * .75, self.name_separator.show)
+        else:
+            # When expanding, show bottom container part way through
+            QTimer.singleShot(self.move_animation.duration() * .6, self.status_container.show)
+
+        # Set up after final adjustment event handler
+        self.final_size_animation.finished.connect(self.on_finished_size_adjustment)
+
+        # Start final size adjustment animation
+        self.final_size_animation.start()
+
+    def on_finished_size_adjustment(self):
+        # Reset handler on final size animation
+        self.final_size_animation.finished.disconnect()
+
+        # Make sure the name separator and status container ended in the right visibility
+        if self.is_collapsing and not self.name_separator.isVisible() or self.is_collapsing and self.status_container.isVisible():
+            self.collapse_widget()
+        if self.is_expanding and self.name_separator.isVisible() or self.is_expanding and not self.status_container.isVisible():
+            self.expand_widget()
+
+        if not self.underMouse() and self.is_expanding:
+            # If the widget was expanded, but the mouse is no longer over it, collapse the widget
+            self.is_expanding = False
+            self.is_collapsing = True
+            QTimer.singleShot(1, lambda: self.expand_collapse_widget())
+            return
+        elif self.underMouse() and self.is_collapsing:
+            # If the widget was collapsed, but the mouse is now over it, expand the widget
+            self.is_collapsing = False
+            self.is_expanding = True
+            self.name_separator.hide()
+            QTimer.singleShot(1, lambda: self.expand_collapse_widget())
+            return
+
+        # Ensure everything is sized and positioned properly
+        if not self.underMouse():
+            self.adjustSize()
+
+        # Ensure widget is on screen
+        if self.pos().x() > self.width() or self.pos().y() > self.height() or self.pos().x() < 0 or self.pos().y() < 0:
+            self.move(self.get_position_for_size(self.size()))
+
+        # Update resizing variables
+        self.is_collapsing = False
+        self.is_expanding = False
+
 
 class TooltipWidget(QtWidgets.QWidget):
     def __init__(self, parent: QWidget, tooltip_widget: QWidget = None, name: str = None):
@@ -624,11 +991,7 @@ class ItemTableCell(TooltipWidget):
         if action_widget_button_text:
             # If there is an action widget button, set it up with click events that will run a customizable method then hide the action widget
             self.action_widget_button: Button = Button(action_widget_button_text)
-            self.action_widget_button.clicked.connect(lambda: (
-                self.on_action_widget_button_triggered(),
-                self.action_widget_container.hide(),
-                self.ui_loop.exit(True)
-            ))
+            self.action_widget_button.clicked.connect(self.action_widget_button_clicked)
             self.action_widget_button_layout.addWidget(self.action_widget_button)
 
             # Set up button to cancel out of the action button
@@ -702,9 +1065,14 @@ class ItemTableCell(TooltipWidget):
         self.action_widget_container.raise_()
         self.ui_loop.exec()
 
-    # Custom event to run when action widget's action button is pressed
-    def on_action_widget_button_triggered(self):
+    # Custom event to run when action widget's action button is pressed returns true if action went through
+    def on_action_widget_button_triggered(self) -> bool:
         pass
+
+    def action_widget_button_clicked(self):
+        if self.on_action_widget_button_triggered():
+            self.action_widget_container.hide()
+            self.ui_loop.exit(True)
 
 
 class WeaponItemTableCellType(Enum):
@@ -767,7 +1135,7 @@ class WeaponItemTableCell(ItemTableCell):
                 return "color: red"
         return None
 
-    def on_action_widget_button_triggered(self):
+    def on_action_widget_button_triggered(self) -> bool:
         # Override method to handle presses for each type of weapon table cell type
         result: bool = False
         match self.weapon_cell_type:
@@ -780,7 +1148,14 @@ class WeaponItemTableCell(ItemTableCell):
         if result:
             self.on_actioned_callback(self)
 
+        return result
+
     def do_weapon_sell(self) -> bool:
+        # Handle player not having another weapon
+        if len(self.player.weapons) <= 0:
+            self.show_error_message("Sorry, you cannot sell your " + self.weapon.weapon_name + " because you must have at least one weapon.")
+            return False
+
         if self.are_you_sure("Are you sure you want to sell your " + self.weapon.weapon_name + "?"):
             self.player.money = self.player.money + self.weapon_price
             return True
@@ -967,7 +1342,7 @@ class ItemTableView(QtWidgets.QScrollArea):
 
         # Set up styles
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setStyleSheet("QWidget {background-color: " + UiObjects.light_text_color + ";"
+        self.setStyleSheet("QWidget {background-color: " + UiObjects.get_transparent_light_background_color(200) + ";"
                              "border: 2px solid" + UiObjects.dark_text_color + ";"
                              "border-radius: 13%;}")
 
@@ -1022,7 +1397,8 @@ class ItemTableView(QtWidgets.QScrollArea):
         height: int = self.height()
 
         for item in self.items:
-            item.image.setFixedHeight(height/self.row_height_devisor * 3/4)
+            item.image.setMaximumHeight(height/self.row_height_devisor * 3/4)
+            item.image.setMinimumHeight(height/self.row_height_devisor * 3/4)
             item.setMaximumWidth(width/self.column_count-15)
             extra_divisor: float = 1.3 if item.extra_info else 1.7 # Extra padding if more info on the bottom
             extra_padding: int = height/self.row_height_devisor*5/8 if self.column_count >= len(self.items) and width >= 462 else height/self.row_height_devisor/extra_divisor # Extra padding for one row tables, add extra when width is smaller
@@ -1501,3 +1877,7 @@ class UiObjects:
     dark_text_color: str = "#6B3F02"
     highlight_color: str = "gold"
     font_name: str = "Harrington"
+
+    @staticmethod
+    def get_transparent_light_background_color(opacity: int):
+        return "rgba(234, 171, 8, " + str(opacity) + ");"

@@ -1,11 +1,11 @@
-from PySide6.QtGui import QResizeEvent
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtGui import QResizeEvent, Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
 
 from com.github.dm0896665.main.core.player.player import Player
 from com.github.dm0896665.main.core.weapon.weapon_util import WeaponUtil
 from com.github.dm0896665.main.util.player_util import PlayerUtil
 from com.github.dm0896665.main.util.ui_objects import Screen, ItemTableView, OutlinedLabel, \
-    WeaponItemTableCell, WeaponItemTableCellType
+    WeaponItemTableCell, WeaponItemTableCellType, PlayerStatusWidget
 
 
 class Blacksmith(Screen):
@@ -43,12 +43,14 @@ class Blacksmith(Screen):
         inventory_layout.addWidget(OutlinedLabel("Weapons to Sell", 40))
         inventory_layout.addWidget(self.inventory)
         self.blacksmith_layout_widget.layout().addWidget(inventory_widget)
+        PlayerStatusWidget(self.player, self.ui).show()
 
         self.adjust_layout_size()
 
     def on_buy_actioned_callback(self, weapon_cell: WeaponItemTableCell):
         cell: WeaponItemTableCell = WeaponItemTableCell(weapon_cell.weapon, self.player, WeaponItemTableCellType.SELL, self.on_sell_actioned_callback)
         self.inventory.add_item(cell)
+        self.inventory.resize_item_image()
         WeaponUtil.add_weapon(weapon_cell.weapon)
 
     def on_sell_actioned_callback(self, weapon_cell: WeaponItemTableCell):
@@ -65,3 +67,4 @@ class Blacksmith(Screen):
 
         self.for_sale.setMaximumWidth(self.blacksmith_layout_widget.width() / 2)
         self.inventory.setMaximumWidth(self.blacksmith_layout_widget.width() / 2)
+        self.ui.layout().setAlignment(Qt.AlignmentFlag.AlignBottom)
