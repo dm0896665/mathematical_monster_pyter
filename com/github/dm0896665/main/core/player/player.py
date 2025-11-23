@@ -100,5 +100,6 @@ class Player:
     def __setattr__(self, name, value):
         # Detect property value changes
         if hasattr(self, name) and getattr(self, name) != value:
+            super().__setattr__(name, value) # Make sure value is updated before emitting that there was a change
             self.property_change_listener.emit(name, value)
         super().__setattr__(name, value)

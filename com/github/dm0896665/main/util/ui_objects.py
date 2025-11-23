@@ -960,7 +960,6 @@ class ItemTableCellActionedWidget(CenteredWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-
 class ItemTableCell(TooltipWidget):
     def __init__(self, name: str, graphics_scene: QGraphicsScene, tooltip_widget: QWidget = None, action_widget: QWidget = None, action_widget_button_text: str = None, name_label_font_size: int = 20, button_text: str = "Action", price: int = None, parent=None):
         if tooltip_widget:
@@ -981,7 +980,7 @@ class ItemTableCell(TooltipWidget):
             self.action_widget.layout().addWidget(okay)
 
         # Center action widget and add styles to it
-        self.action_widget_container = CenteredFocusWidget(action_widget, 50, 75)
+        self.action_widget_container = CenteredFocusWidget(self.action_widget, 50, 75)
         self.action_widget.setStyleSheet("border: 2px solid" + UiObjects.dark_text_color + ";"
                                             "border-radius: 13%;"
                                             "background-color: " + UiObjects.light_text_color + ";")
@@ -991,7 +990,7 @@ class ItemTableCell(TooltipWidget):
         if action_widget_button_text:
             # If there is an action widget button, set it up with click events that will run a customizable method then hide the action widget
             self.action_widget_button: Button = Button(action_widget_button_text)
-            self.action_widget_button.clicked.connect(self.action_widget_button_clicked)
+            self.action_widget_button.clicked.connect(self.action_button_clicked)
             self.action_widget_button_layout.addWidget(self.action_widget_button)
 
             # Set up button to cancel out of the action button
@@ -1066,11 +1065,11 @@ class ItemTableCell(TooltipWidget):
         self.ui_loop.exec()
 
     # Custom event to run when action widget's action button is pressed returns true if action went through
-    def on_action_widget_button_triggered(self) -> bool:
+    def on_action_button_triggered(self) -> bool:
         pass
 
-    def action_widget_button_clicked(self):
-        if self.on_action_widget_button_triggered():
+    def action_button_clicked(self):
+        if self.on_action_button_triggered():
             self.action_widget_container.hide()
             self.ui_loop.exit(True)
 
@@ -1086,42 +1085,44 @@ class WeaponItemTableCell(ItemTableCell):
         # Variable for testing if dialog returns true or not
         self.message_result: bool = False
 
+        # Set up class variables
+        self.weapon = weapon
+        self.weapon_price = weapon.price
+        self.player = player
+        self.weapon_cell_type = weapon_cell_type
+
         # Set up when function called when action button is pressed
         self.on_actioned_callback: Callable[[WeaponItemTableCell], None] = on_actioned_callback
 
         # Set up price of weapon
-        price: int = None
         self.price_color: str = ""
         if weapon_cell_type == WeaponItemTableCellType.BUY:
-            price = weapon.price
-            self.price_color = "color: green" if player.money >= price else "color: red;"
+            self.price_color = self.get_price_color()
         elif weapon_cell_type == WeaponItemTableCellType.SELL:
-            price = int(weapon.price / 2) # Weapons are sold at half price
-
-        # Set up class variables
-        self.weapon = weapon
-        self.weapon_price = price
-        self.player = player
-        self.weapon_cell_type = weapon_cell_type
+            self.weapon_price = int(weapon.price / 2) # Weapons are sold at half price
+        else:
+            self.weapon_price = None
 
         # Get weapon image
         graphics_scene: QGraphicsScene = ImageUtil.load_image("weapons/" + weapon.weapon_image_name + ".png")
 
         # Set up tooltip and action widget
         tooltip_widget = self.create_main_widget(weapon, name_label_font_size, graphics_scene, False)
-        actioned_widget = self.create_main_widget(weapon, name_label_font_size, graphics_scene)
+        action_widget = self.create_main_widget(weapon, name_label_font_size, graphics_scene)
 
-        super().__init__(weapon.weapon_name, graphics_scene, tooltip_widget, actioned_widget, str(weapon_cell_type.value), name_label_font_size, str(weapon_cell_type.value), price, parent)
+        super().__init__(weapon.weapon_name, graphics_scene, tooltip_widget, action_widget, str(weapon_cell_type.value), name_label_font_size, str(weapon_cell_type.value), self.weapon_price, parent)
 
         # Set up on action button pressed (must be after super class is initialized, otherwise it will be overwritten)
-        self.action.clicked.connect(self.on_action_widget_button_triggered)
+        self.action.clicked.connect(self.action_button_clicked)
 
         # If we should show a price (for buying and selling weapons), set extra_info to true to provide buffer for it, then set up and add price label
-        if price:
+        self.price_label: Label = None
+        if self.weapon_price:
             self.extra_info = True
-            self.price_label: Label = Label(str(price) + " coins", int(name_label_font_size * .7))
+            self.price_label = Label(str(self.weapon_price) + " coins", int(name_label_font_size * .7))
             self.price_label.setStyleSheet("border: 2px solid transparent;" + self.price_color)
             self.price_label.setMouseTracking(True)
+            self.player.property_change_listener.connect(self.player_property_updated)
             self.layout.addWidget(self.price_label)
 
     @staticmethod
@@ -1135,7 +1136,7 @@ class WeaponItemTableCell(ItemTableCell):
                 return "color: red"
         return None
 
-    def on_action_widget_button_triggered(self) -> bool:
+    def on_action_button_triggered(self) -> bool:
         # Override method to handle presses for each type of weapon table cell type
         result: bool = False
         match self.weapon_cell_type:
@@ -1149,6 +1150,31 @@ class WeaponItemTableCell(ItemTableCell):
             self.on_actioned_callback(self)
 
         return result
+
+    def player_property_updated(self, name: str, _value: Any):
+        if name == Player.money.fget.__name__:
+            self.update_price_colors()
+
+    def update_price_colors(self):
+        if self.weapon_cell_type != WeaponItemTableCellType.BUY:
+            return
+
+        self.price_color = self.get_price_color()
+        price_style = "border: 2px solid transparent;" + self.price_color
+
+        action_widget_price_label: Label = self.action_widget.findChild(Label, "price_label")
+        if action_widget_price_label:
+            action_widget_price_label.setStyleSheet(price_style)
+
+        if self.price_label:
+            self.price_label.setStyleSheet(price_style)
+
+    def get_price_color(self) -> str:
+        if not self.weapon_price:
+            return ""
+        print(str(self.player.money) + " VS " + str(self.weapon_price))
+
+        return "color: green" if self.player.money >= self.weapon_price else "color: red;"
 
     def do_weapon_sell(self) -> bool:
         # Handle player not having another weapon
@@ -1312,6 +1338,7 @@ class WeaponItemTableCell(ItemTableCell):
             new_price_label: Label = Label("Current: " + str(self.player.money) + " " + operand + " Price: " + str(self.weapon_price) + " = New Total: " + str(new_total) + " coins", name_label_font_size-4)
             new_price_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             new_price_label.setStyleSheet(label_styles + self.price_color)
+            new_price_label.setObjectName("price_label")
             widget.layout().addWidget(new_price_label)
 
         widget.adjustSize()
@@ -1360,6 +1387,9 @@ class ItemTableView(QtWidgets.QScrollArea):
         item.setMaximumWidth(width/self.column_count)
         item.setMinimumWidth(QFontMetrics(item.action.font()).horizontalAdvance(item.action.text())+40) # Width based on action text size
 
+        # Connect signal to refresh all items
+        # item.item_table_cell_ui_update_request.connect(self.update_all_item_ui)
+
         # Add item
         self.items.append(item)
         self.table_layout.addWidget(item, self.table_layout.count() // self.column_count, self.table_layout.count() % self.column_count)
@@ -1403,6 +1433,11 @@ class ItemTableView(QtWidgets.QScrollArea):
             extra_divisor: float = 1.3 if item.extra_info else 1.7 # Extra padding if more info on the bottom
             extra_padding: int = height/self.row_height_devisor*5/8 if self.column_count >= len(self.items) and width >= 462 else height/self.row_height_devisor/extra_divisor # Extra padding for one row tables, add extra when width is smaller
             item.setMaximumHeight(height/self.row_height_devisor + extra_padding)
+
+    # def player_property_updated(self, name: str, value: Any):
+        # print(name + " changed")
+        # if name == Player.money.fget.__name__:
+        #     self.update_all_item_ui(name, value)
 
 
 class Screen(QWidget):
