@@ -1172,7 +1172,6 @@ class WeaponItemTableCell(ItemTableCell):
     def get_price_color(self) -> str:
         if not self.weapon_price:
             return ""
-        print(str(self.player.money) + " VS " + str(self.weapon_price))
 
         return "color: green" if self.player.money >= self.weapon_price else "color: red;"
 
